@@ -1,0 +1,19 @@
+{
+  "name": "Research OS",
+  "short_name": "Research OS",
+  "description": "오늘 무엇을 할지 고민하지 않고 바로 시작하는 시스템",
+  "start_url": "/research-os/dashboard.html",
+  "scope": "/research-os/",
+  "display": "standalone",
+  "background_color": "#F5F2EE",
+  "theme_color": "#4A6FA5",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,3730 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Research OS</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4A6FA5">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ── Design Tokens ─────────────────────────────────────── */
+  :root {
+    --bg:         #F5F2EE;
+    --surface:    #FFFFFF;
+    --surface-2:  #F0EDE9;
+    --border:     #E2DDD8;
+    --border-2:   #CCC8C2;
+
+    --text-1:     #1C1814;
+    --text-2:     #5C574F;
+    --text-3:     #9C9790;
+
+    --accent:     #4A6FA5;      /* slate blue — 차분하고 학술적 */
+    --accent-bg:  #EBF0F7;
+    --urgent:     #C0432A;      /* red — 마감 경고용 */
+    --urgent-bg:  #FBF0ED;
+    --wait:       #7A6EBA;      /* muted purple — 대기 항목 */
+
+    --radius-sm:  6px;
+    --radius:     12px;
+    --radius-lg:  18px;
+
+    --shadow:     0 1px 4px rgba(0,0,0,.06), 0 2px 12px rgba(0,0,0,.04);
+    --shadow-lg:  0 4px 24px rgba(0,0,0,.10);
+
+    --font-sans:  'Noto Sans KR', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text-1);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ────────────────────────────────────────────── */
+  .app {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    grid-template-rows: 1fr;
+    height: 100vh;
+  }
+
+  /* ── Sidebar (icon-only nav) ────────────────────────────── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 0;
+    gap: 4px;
+  }
+
+  .nav-logo {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .nav-item {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-3);
+    font-size: 16px;
+    transition: background .15s, color .15s;
+    position: relative;
+  }
+
+  .nav-item:hover { background: var(--surface-2); color: var(--text-2); }
+  .nav-item.active { background: var(--accent-bg); color: var(--accent); }
+
+  .nav-item[data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    left: 44px;
+    background: var(--text-1);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    z-index: 100;
+    font-family: var(--font-sans);
+  }
+
+  .nav-spacer { flex: 1; }
+
+  /* ── Main area ──────────────────────────────────────────── */
+  .main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Top bar ────────────────────────────────────────────── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .topbar-date {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-1);
+  }
+
+  .topbar-day {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-left: 4px;
+  }
+
+  .energy-selector {
+    margin-left: 16px;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .energy-label {
+    font-size: 11px;
+    color: var(--text-3);
+    margin-right: 4px;
+  }
+
+  .energy-btn {
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    font-size: 11px;
+    font-family: var(--font-sans);
+    color: var(--text-2);
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .energy-btn.selected-high { background: #EAF2EE; color: var(--accent); border-color: var(--accent); }
+  .energy-btn.selected-mid  { background: #FBF5E6; color: #9A7D3A; border-color: #C9A84C; }
+  .energy-btn.selected-low  { background: #F5EAEA; color: #8B4545; border-color: #C07070; }
+
+  .topbar-spacer { flex: 1; }
+
+  .quick-capture-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 12px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+
+  .quick-capture-btn:hover { opacity: .88; }
+
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    padding: 1px 5px;
+    background: rgba(255,255,255,.25);
+    border-radius: 3px;
+    font-size: 10px;
+    font-family: monospace;
+  }
+
+  /* ── Content area (메인 + 우측 패널) ────────────────────── */
+  .content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 256px;
+    overflow: hidden;
+  }
+
+  .home-inner {
+    padding: 24px 28px 40px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ── Project cards (2-column grid) ───────────────────────── */
+  .proj-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 16px 16px 10px;
+    cursor: pointer;
+    transition: box-shadow .15s, transform .1s;
+    display: flex;
+    flex-direction: column;
+  }
+  .proj-card:hover {
+    box-shadow: 0 3px 12px rgba(0,0,0,.08);
+    transform: translateY(-1px);
+  }
+  .proj-card-footer {
+    margin-top: auto;
+    padding-top: 10px;
+    font-size: 11px;
+    color: var(--text-3);
+    text-align: right;
+  }
+
+  /* ── Kanban cards ─────────────────────────────────────────── */
+  .kanban-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: var(--text-1);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .kanban-card .kc-text { flex: 1; line-height: 1.4; }
+  .kanban-card .kc-move {
+    font-size: 11px;
+    color: var(--text-3);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+    background: var(--surface-2);
+    flex-shrink: 0;
+  }
+  .kanban-card .kc-move:hover { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+  .kanban-card .kc-del {
+    font-size: 14px;
+    color: var(--border-2);
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .kanban-card:hover .kc-del { opacity: 1; }
+  .kanban-card .kc-del:hover { color: var(--urgent); }
+  .kc-edit-input {
+    flex: 1;
+    border: none;
+    border-bottom: 1.5px solid var(--accent);
+    outline: none;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-1);
+    background: transparent;
+    padding: 0;
+  }
+  .kanban-card.doing-card { border-left: 3px solid var(--accent); }
+  .kanban-card.done-card-k { opacity: .55; }
+
+  /* ── Right panel ─────────────────────────────────────────── */
+  .right-panel {
+    border-left: 1px solid var(--border);
+    background: var(--surface);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Hero: Next Action ──────────────────────────────────── */
+  .hero {
+    padding: 0;
+  }
+
+  .hero-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 12px;
+  }
+
+  .hero-task {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  .hero-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .hero-body { flex: 1; }
+
+  .hero-project {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .hero-title {
+    font-family: var(--font-sans);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-1);
+    line-height: 1.3;
+    margin-bottom: 8px;
+  }
+
+  .hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  .hero-meta span { display: flex; align-items: center; gap: 4px; }
+
+  .hero-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+  }
+
+  .btn-primary {
+    padding: 9px 20px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 13px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-secondary {
+    padding: 9px 16px;
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--border-2);
+    border-radius: 20px;
+    font-size: 13px;
+    font-family: var(--font-sans);
+    cursor: pointer;
+  }
+
+  /* ── MIT Row (3 horizontal cards) ──────────────────────── */
+  .mit-section {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 12px;
+  }
+
+  .mit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 24px;
+  }
+
+  .mit-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: border-color .15s;
+  }
+  .mit-item.empty {
+    border-style: dashed;
+    cursor: text;
+  }
+  .mit-item.empty:hover { border-color: var(--accent); }
+  .mit-item:not(.empty) { cursor: default; }
+  .mit-item.active { border-color: var(--accent); background: var(--accent-bg); }
+  .mit-item.done   { opacity: .5; }
+
+  .mit-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-1);
+    outline: none;
+    padding: 0;
+  }
+  .mit-input::placeholder { color: var(--text-3); }
+
+  /* 프로젝트 선택 버튼 */
+  .mit-proj-btn {
+    font-size: 11px;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-3);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color .12s;
+  }
+  .mit-proj-btn:hover { border-color: var(--border-2); }
+  .mit-proj-btn.has-proj { border-color: transparent; }
+
+  /* 프로젝트 선택 팝오버 */
+  .mit-proj-picker {
+    position: fixed;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    z-index: 3000;
+    min-width: 160px;
+    overflow: hidden;
+  }
+  .mit-proj-option {
+    padding: 9px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-1);
+    transition: background .1s;
+  }
+  .mit-proj-option:hover { background: var(--surface-2); }
+  .mit-proj-option .dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .mit-proj-option.none-opt { color: var(--text-3); border-top: 1px solid var(--border); }
+
+  /* 태스크 제안 칩 */
+  .mit-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    margin-top: 2px;
+  }
+  .mit-suggest-chip {
+    font-size: 11px;
+    padding: 5px 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-2);
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background .1s, border-color .1s;
+  }
+  .mit-suggest-chip:hover { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+
+  .mit-num {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .mit-item.done .mit-num {
+    background: var(--surface-2);
+    color: var(--text-3);
+  }
+
+  .mit-check {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-2);
+    flex-shrink: 0;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    font-size: 9px;
+  }
+
+  .mit-item.done .mit-check {
+    background: var(--surface-2);
+    color: var(--text-3);
+    border-color: transparent;
+  }
+
+  .mit-text {
+    font-size: 13px;
+    color: var(--text-1);
+    flex: 1;
+  }
+
+  .mit-item.done .mit-text {
+    text-decoration: line-through;
+    color: var(--text-3);
+  }
+
+  .mit-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    color: var(--text-3);
+  }
+
+  .mit-tag.urgent { background: var(--urgent-bg); color: var(--urgent); }
+
+  /* ── Today's extras ─────────────────────────────────────── */
+  .extras {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .extra-card {
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .extra-icon { font-size: 16px; }
+  .extra-title { font-size: 11px; color: var(--text-3); margin-bottom: 2px; }
+  .extra-value { font-size: 13px; color: var(--text-1); font-weight: 500; }
+
+  .extra-card.done-card { opacity: .6; }
+  .extra-card.done-card .extra-value { text-decoration: line-through; }
+
+  /* ── Today Schedule (compact horizontal rows) ───────────── */
+  .schedule-section { display: flex; flex-direction: column; gap: 4px; }
+
+  .sched-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: border-color .15s;
+  }
+  .sched-row.current { border-color: var(--accent); background: var(--accent-bg); }
+  .sched-row.done-row { opacity: .45; }
+
+  .sched-time {
+    font-size: 11px;
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+    width: 90px;
+    flex-shrink: 0;
+  }
+  .sched-row.current .sched-time { color: var(--accent); }
+
+  .sched-bar {
+    width: 3px;
+    height: 28px;
+    border-radius: 2px;
+    background: var(--border-2);
+    flex-shrink: 0;
+  }
+  .sched-row.current .sched-bar { background: var(--accent); }
+  .sched-bar.care-bar     { background: var(--wait); }
+  .sched-bar.exercise-bar { background: #C09840; }
+  .sched-bar.break-bar    { background: var(--border-2); }
+
+  .sched-label { font-size: 13px; color: var(--text-1); flex: 1; }
+  .sched-row.current .sched-label { font-weight: 600; color: var(--accent); }
+  .sched-meta  { font-size: 11px; color: var(--text-3); }
+  .sched-now   { font-size: 11px; color: var(--accent); font-weight: 500; }
+
+  /* ── Bottom cards row ────────────────────────────────────── */
+  .bottom-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .bottom-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .bottom-card.done-card { opacity: .5; }
+  .bottom-card-icon  { font-size: 16px; flex-shrink: 0; }
+  .bottom-card-label { font-size: 10px; color: var(--text-3); margin-bottom: 2px; }
+  .bottom-card-value { font-size: 12px; font-weight: 500; color: var(--text-1); }
+
+  /* ── Time blocks ────────────────────────────────────────── */
+  .time-blocks { display: flex; flex-direction: column; gap: 4px; }
+
+  .time-block {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 6px 0;
+  }
+
+  .time-block-time {
+    font-size: 11px;
+    color: var(--text-3);
+    width: 42px;
+    flex-shrink: 0;
+    padding-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .time-block-bar {
+    width: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    align-self: stretch;
+    min-height: 32px;
+    flex-shrink: 0;
+  }
+
+  .time-block-bar.deep-work { background: var(--accent); }
+  .time-block-bar.break     { background: var(--border-2); }
+  .time-block-bar.care      { background: var(--wait); }
+  .time-block-bar.exercise  { background: #C09840; }
+
+  .time-block-label { font-size: 12px; color: var(--text-1); padding-top: 2px; }
+  .time-block-sub   { font-size: 11px; color: var(--text-3); }
+
+  .time-block.current .time-block-label {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* ── Progress ────────────────────────────────────────────── */
+  .progress-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .progress-item { }
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .progress-name  { font-size: 12px; color: var(--text-1); }
+  .progress-pct   { font-size: 11px; color: var(--text-3); }
+  .progress-next  { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+  .progress-bar-bg {
+    height: 4px;
+    background: var(--surface-2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+
+  .progress-bar-fill.urgent { background: var(--urgent); }
+
+  /* ── Waiting ────────────────────────────────────────────── */
+  .waiting-list { display: flex; flex-direction: column; gap: 6px; }
+
+  .waiting-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-2);
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+  }
+
+  .waiting-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--wait);
+    flex-shrink: 0;
+  }
+
+  .waiting-days {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-3);
+  }
+
+  /* ── Quick Capture Overlay ──────────────────────────────── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(28,24,20,.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 120px;
+    z-index: 1000;
+  }
+
+  .capture-modal {
+    width: 540px;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+
+  .capture-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .capture-icon { font-size: 16px; color: var(--text-3); }
+
+  .capture-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    font-family: var(--font-sans);
+    color: var(--text-1);
+    background: transparent;
+  }
+
+  .capture-input::placeholder { color: var(--text-3); }
+
+  .capture-hint {
+    font-size: 11px;
+    color: var(--text-3);
+    padding: 8px 20px 10px;
+  }
+
+  .capture-recent {
+    padding: 0 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .capture-recent-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background .1s;
+  }
+
+  .capture-recent-item:hover { background: var(--surface-2); }
+
+  .capture-recent-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--border-2);
+  }
+
+  .capture-recent-text { font-size: 13px; color: var(--text-2); }
+
+  /* ── Design System Reference ────────────────────────────── */
+  .design-ref {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 60px 32px;
+  }
+
+  .design-ref h1 {
+    font-family: var(--font-sans);
+    font-size: 28px;
+    margin-bottom: 8px;
+    color: var(--text-1);
+  }
+
+  .design-ref p {
+    color: var(--text-2);
+    margin-bottom: 40px;
+    font-size: 14px;
+  }
+
+  .design-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 16px;
+  }
+
+  .color-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+
+  .color-swatch {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .swatch-block {
+    width: 64px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,.08);
+  }
+
+  .swatch-name  { font-size: 11px; color: var(--text-3); }
+  .swatch-value { font-size: 10px; color: var(--text-3); font-family: monospace; }
+
+  /* ── Screen tabs (for prototype navigation) ─────────────── */
+  .screen-tabs {
+    display: flex;
+    gap: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .screen-tab {
+    padding: 10px 18px;
+    font-size: 12px;
+    color: var(--text-3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+    user-select: none;
+  }
+
+  .screen-tab:hover { color: var(--text-2); }
+  .screen-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .screen { display: none; }
+  .screen.visible { display: flex; flex-direction: column; height: calc(100vh - 36px); }
+
+  /* ── Design system screen ───────────────────────────────── */
+  .ds-screen {
+    background: var(--bg);
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .ds-inner {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 40px 32px;
+  }
+
+  .ds-h1 {
+    font-family: var(--font-sans);
+    font-size: 24px;
+    margin-bottom: 4px;
+    color: var(--text-1);
+  }
+
+  .ds-p {
+    color: var(--text-3);
+    font-size: 13px;
+    margin-bottom: 40px;
+  }
+
+  .ds-block {
+    margin-bottom: 36px;
+  }
+
+  .ds-block-title {
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    font-weight: 600;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .type-samples { display: flex; flex-direction: column; gap: 10px; }
+
+  .type-row {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+
+  .type-label {
+    font-size: 11px;
+    color: var(--text-3);
+    width: 120px;
+    flex-shrink: 0;
+  }
+
+  /* ── Monthly Calendar ──────────────────────────────────── */
+  .cal-cell {
+    min-height: 80px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .cal-cell:hover { border-color: var(--border-2); }
+  .cal-cell.empty { background: transparent; border-color: transparent; cursor: default; }
+  .cal-num { font-size: 12px; color: var(--text-3); margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+  .today-cell { border-color: var(--accent) !important; }
+  .today-num  { color: var(--accent) !important; font-weight: 600; }
+
+  .cal-event {
+    font-size: 10px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cal-event.thesis   { background: #F5E6D8; color: #8B4F22; }
+  .cal-event.gf       { background: #D8EDE6; color: #2D6B55; }
+  .cal-event.pibo     { background: #E8E4F5; color: #4A3D8B; }
+  .cal-event.care     { background: #EBEBEB; color: #666; }
+  .cal-event.urgent-event { background: var(--urgent-bg); color: var(--urgent); }
+
+  /* ── Weekly Grid ────────────────────────────────────────── */
+  .week-day-header {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-3);
+    font-weight: 500;
+    padding: 8px 4px;
+    background: var(--surface);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .week-day-header.today-week { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
+
+  .week-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 120px;
+  }
+  .week-col.care-day { background: #F7F7F7; }
+  .week-col.today-col { border-color: var(--accent); }
+
+  .week-task {
+    font-size: 10px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    line-height: 1.3;
+  }
+  .thesis-task { background: #F5E6D8; color: #8B4F22; }
+  .pibo-task   { background: #E8E4F5; color: #4A3D8B; }
+  .gf-task     { background: #D8EDE6; color: #2D6B55; }
+  .care-task   { background: #EBEBEB; color: #666; }
+  .ex-task     { background: #FBF5E6; color: #8A6820; }
+  .active-task { font-weight: 600; }
+  .done-task   { opacity: .5; text-decoration: line-through; }
+
+  /* annotation */
+  .annotation {
+    font-size: 11px;
+    color: var(--text-3);
+    padding: 8px 12px;
+    background: #FFFBE6;
+    border-left: 3px solid #E8C94D;
+    border-radius: 0 4px 4px 0;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<!-- Screen Tab Navigation -->
+<div class="screen-tabs">
+  <div class="screen-tab active" onclick="showScreen('home')">🏠 Home</div>
+  <div class="screen-tab" onclick="showScreen('projects')">📁 Projects</div>
+  <div class="screen-tab" onclick="showScreen('monthly')">📆 Monthly</div>
+  <div class="screen-tab" onclick="showScreen('weekly')">📋 Weekly</div>
+  <div class="screen-tab" onclick="showScreen('daily')">🌅 Daily Planning</div>
+  <div class="screen-tab" onclick="showScreen('capture')">⚡ Inbox</div>
+  <div class="screen-tab" onclick="showScreen('ds')">🎨 Design System</div>
+</div>
+
+<!-- ══ SCREEN 1: Home Dashboard ════════════════════════════ -->
+<div class="screen visible" id="screen-home">
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="nav-logo">R</div>
+      <div class="nav-item active" data-tip="홈">⌂</div>
+      <div class="nav-item" data-tip="Daily">📅</div>
+      <div class="nav-item" data-tip="프로젝트">◫</div>
+      <div class="nav-item" data-tip="논문">📄</div>
+      <div class="nav-item" data-tip="Research">🔬</div>
+      <div class="nav-item" data-tip="대기중">⏳</div>
+      <div class="nav-spacer"></div>
+      <div class="nav-item" data-tip="주간 리뷰">◎</div>
+      <div class="nav-item" data-tip="설정">⚙</div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main">
+      <!-- Top bar -->
+      <div class="topbar">
+        <span class="topbar-date">2026년 6월 27일</span>
+        <span class="topbar-day">금요일</span>
+
+        <div class="energy-selector">
+          <span class="energy-label">오늘 에너지</span>
+          <button class="energy-btn">높음</button>
+          <button class="energy-btn selected-mid">보통</button>
+          <button class="energy-btn">낮음</button>
+        </div>
+
+        <div class="topbar-spacer"></div>
+
+        <button class="quick-capture-btn" onclick="openCapture()">
+          ⚡ 빠른 메모
+          <span class="kbd">⌘K</span>
+        </button>
+      </div>
+
+      <!-- Content: 단일 컬럼 -->
+      <div class="content">
+        <div class="home-inner">
+
+          <!-- ① 지금 할 일 -->
+          <div class="hero" id="hero-section">
+            <div class="hero-label">지금 할 일</div>
+            <div class="hero-task" id="hero-task">
+              <div class="hero-icon" id="hero-icon">✍</div>
+              <div class="hero-body">
+                <div class="hero-project" id="hero-empty-msg" style="display:none; color:var(--text-3); font-size:13px; padding:8px 0;">
+                  오늘의 MIT를 아래에 입력해주세요.
+                </div>
+                <div id="hero-content">
+                  <div class="hero-project" id="hero-proj-label" style="display:none;"></div>
+                  <div class="hero-title" id="hero-title">—</div>
+                  <div class="hero-actions">
+                    <button class="btn-primary" onclick="completeCurrent()">완료 ✓ <span style="opacity:.7;font-size:11px">⌘↵</span></button>
+                    <button class="btn-secondary" onclick="skipCurrent()">→ 다음으로</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ② MIT 3개 -->
+          <div>
+            <div style="display:flex; align-items:center; margin-bottom:10px;">
+              <div class="section-label">오늘의 MIT</div>
+              <span style="font-size:11px; color:var(--text-3); margin-left:8px;">— 가장 중요한 3가지</span>
+              <button onclick="clearMIT()" style="margin-left:auto; background:none; border:none; font-size:11px; color:var(--text-3); cursor:pointer; padding:2px 6px;" title="오늘 MIT 초기화">↺ 초기화</button>
+            </div>
+            <div class="mit-section" id="mit-list"></div>
+          </div>
+
+          <!-- ③ 오늘 챙길 것 -->
+          <div>
+            <div class="section-label" style="margin-bottom:10px;">오늘 챙길 것</div>
+            <div class="bottom-cards" style="grid-template-columns:1fr 1fr; margin-bottom:10px;">
+              <div class="bottom-card">
+                <div class="bottom-card-icon">📄</div>
+                <div>
+                  <div class="bottom-card-label">오늘 읽을 논문</div>
+                  <div class="bottom-card-value">Hobbs 2017</div>
+                </div>
+              </div>
+              <div class="bottom-card done-card">
+                <div class="bottom-card-icon">💪</div>
+                <div>
+                  <div class="bottom-card-label">운동</div>
+                  <div class="bottom-card-value">헬스 완료 ✓</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 대기 중 태스크 목록 -->
+            <div class="section-label" style="margin-bottom:8px;">대기 중</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <div class="waiting-item">
+                <div class="waiting-dot"></div>
+                <div style="flex:1;">
+                  <div style="font-size:12px; color:var(--text-1);">교수님 피드백 — 논문 1장</div>
+                  <div style="font-size:11px; color:var(--text-3); margin-top:1px;">논문 · 제출일 6/20</div>
+                </div>
+                <span class="waiting-days">7일째</span>
+              </div>
+              <div class="waiting-item">
+                <div class="waiting-dot"></div>
+                <div style="flex:1;">
+                  <div style="font-size:12px; color:var(--text-1);">Code.org 워크샵 일정 확인</div>
+                  <div style="font-size:11px; color:var(--text-3); margin-top:1px;">Global Facilitator · 문의일 6/25</div>
+                </div>
+                <span class="waiting-days">2일째</span>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /home-inner -->
+
+        <!-- 우측 패널 -->
+        <div class="right-panel">
+
+          <!-- 오늘 일정 (동적 렌더링) -->
+          <div class="panel-section" style="flex:1; min-height:0; overflow-y:auto;">
+            <div style="display:flex; align-items:center; margin-bottom:10px;">
+              <div class="section-label">오늘 일정</div>
+              <span id="schedule-now-badge" style="display:none; margin-left:8px; font-size:10px; padding:1px 7px; border-radius:8px; background:var(--accent-bg); color:var(--accent); font-weight:500;"></span>
+            </div>
+            <div id="schedule-blocks" class="time-blocks"></div>
+          </div>
+
+          <!-- 프로젝트 진행률 -->
+          <div class="panel-section">
+            <div class="section-label" style="margin-bottom:12px;">프로젝트 현황</div>
+            <div class="progress-list">
+              <div class="progress-item">
+                <div class="progress-header">
+                  <span class="progress-name">논문</span>
+                  <span class="progress-pct" style="color:var(--urgent)">D-3 ⚠</span>
+                </div>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill urgent" style="width:38%"></div>
+                </div>
+                <div class="progress-next">→ 2장 도입부 수정</div>
+              </div>
+              <div class="progress-item">
+                <div class="progress-header">
+                  <span class="progress-name">Pibo 연구</span>
+                  <span class="progress-pct">20%</span>
+                </div>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" style="width:20%"></div>
+                </div>
+                <div class="progress-next">→ 선행연구 읽기</div>
+              </div>
+              <div class="progress-item">
+                <div class="progress-header">
+                  <span class="progress-name">Global Facilitator</span>
+                  <span class="progress-pct">65%</span>
+                </div>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" style="width:65%"></div>
+                </div>
+                <div class="progress-next">→ Week 3 과제</div>
+              </div>
+              <div class="progress-item">
+                <div class="progress-header">
+                  <span class="progress-name">AI Literacy</span>
+                  <span class="progress-pct">10%</span>
+                </div>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" style="width:10%"></div>
+                </div>
+                <div class="progress-next">→ 선행연구 탐색</div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /right-panel -->
+
+      </div><!-- /content -->
+    </div><!-- /main -->
+  </div><!-- /app -->
+</div>
+
+
+<!-- ══ SCREEN 2: Projects ════════════════════════════════════ -->
+<div class="screen" id="screen-projects">
+  <div style="display:flex; flex-direction:column; height:100%; background:var(--bg);">
+
+    <!-- 헤더 (목록 뷰) -->
+    <div id="proj-list-header" style="display:flex; align-items:center; gap:12px; padding:16px 28px; background:var(--surface); border-bottom:1px solid var(--border);">
+      <span style="font-size:18px; font-weight:700; color:var(--text-1);">프로젝트</span>
+      <div style="flex:1"></div>
+      <button style="background:var(--accent); color:white; border:none; border-radius:20px; padding:7px 16px; font-size:12px; font-family:var(--font-sans); cursor:pointer;">+ 프로젝트 추가</button>
+    </div>
+
+    <!-- 헤더 (칸반 뷰) -->
+    <div id="proj-kanban-header" style="display:none; align-items:center; gap:12px; padding:14px 20px; background:var(--surface); border-bottom:1px solid var(--border);">
+      <button onclick="closeKanban()" style="background:none; border:1px solid var(--border); border-radius:8px; padding:5px 12px; font-size:12px; font-family:var(--font-sans); cursor:pointer; color:var(--text-2);">← 프로젝트 목록</button>
+      <div id="kanban-proj-badge" style="width:12px; height:12px; border-radius:50%;"></div>
+      <span id="kanban-proj-name" style="font-size:16px; font-weight:700; color:var(--text-1);"></span>
+      <span id="kanban-proj-status" style="font-size:11px; padding:2px 9px; border-radius:10px;"></span>
+      <div style="flex:1"></div>
+      <span id="kanban-proj-deadline" style="font-size:12px; color:var(--text-3);"></span>
+    </div>
+
+    <!-- 목록 뷰: 2열 그리드 -->
+    <div id="proj-list-view" style="overflow-y:auto; flex:1; padding:24px 28px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; max-width:900px; margin:0 auto;">
+
+        <!-- 논문 -->
+        <div class="proj-card" onclick="openKanban('thesis')" style="border-left-color:var(--urgent);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span style="font-size:14px; font-weight:700; color:var(--text-1);">논문</span>
+            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:var(--urgent-bg); color:var(--urgent); font-weight:500;">D-3</span>
+            <div style="flex:1"></div>
+            <span style="font-size:11px; color:var(--text-3);">6/30</span>
+          </div>
+          <div style="margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-3); margin-bottom:3px;"><span>진행률</span><span data-pct>—</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill urgent" style="width:0%"></div></div>
+          </div>
+          <div style="font-size:12px; color:var(--accent);" data-next>—</div>
+          <div class="proj-card-footer">태스크 보기 →</div>
+        </div>
+
+        <!-- Pibo -->
+        <div class="proj-card" onclick="openKanban('pibo')" style="border-left-color:#7A6EBA;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span style="font-size:14px; font-weight:700; color:var(--text-1);">Pibo 연구 설계</span>
+            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:#F0EEF9; color:#7A6EBA; font-weight:500;">진행 중</span>
+            <div style="flex:1"></div>
+            <span style="font-size:11px; color:var(--text-3);">미정</span>
+          </div>
+          <div style="margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-3); margin-bottom:3px;"><span>진행률</span><span data-pct>—</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:0%; background:#7A6EBA;"></div></div>
+          </div>
+          <div style="font-size:12px; color:var(--accent);" data-next>—</div>
+          <div class="proj-card-footer">태스크 보기 →</div>
+        </div>
+
+        <!-- Global Facilitator -->
+        <div class="proj-card" onclick="openKanban('gf')" style="border-left-color:#4A9E7A;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span style="font-size:14px; font-weight:700; color:var(--text-1);">Global Facilitator</span>
+            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:#E6F5EE; color:#4A9E7A; font-weight:500;">진행 중</span>
+            <div style="flex:1"></div>
+            <span style="font-size:11px; color:var(--text-3);">6/25</span>
+          </div>
+          <div style="margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-3); margin-bottom:3px;"><span>진행률</span><span data-pct>—</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:0%; background:#4A9E7A;"></div></div>
+          </div>
+          <div style="font-size:12px; color:var(--accent);" data-next>—</div>
+          <div class="proj-card-footer">태스크 보기 →</div>
+        </div>
+
+        <!-- AI Literacy -->
+        <div class="proj-card" onclick="openKanban('ai')" style="border-left-color:var(--accent);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span style="font-size:14px; font-weight:700; color:var(--text-1);">AI Digital Literacy</span>
+            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:var(--accent-bg); color:var(--accent); font-weight:500;">초기</span>
+            <div style="flex:1"></div>
+            <span style="font-size:11px; color:var(--text-3);">미정</span>
+          </div>
+          <div style="margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-3); margin-bottom:3px;"><span>진행률</span><span data-pct>—</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:0%"></div></div>
+          </div>
+          <div style="font-size:12px; color:var(--accent);" data-next>—</div>
+          <div class="proj-card-footer">태스크 보기 →</div>
+        </div>
+
+        <!-- 강의 준비 (절반 너비) -->
+        <div class="proj-card" onclick="openKanban('lecture')" style="border-left-color:#C09840;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span style="font-size:14px; font-weight:700; color:var(--text-1);">강의 준비</span>
+            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:#FBF5E6; color:#8A6820; font-weight:500;">대기</span>
+            <div style="flex:1"></div>
+            <span style="font-size:11px; color:var(--text-3);">7/10</span>
+          </div>
+          <div style="margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-3); margin-bottom:3px;"><span>진행률</span><span data-pct>—</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:0%; background:#C09840;"></div></div>
+          </div>
+          <div style="font-size:12px; color:var(--accent);" data-next>—</div>
+          <div class="proj-card-footer">태스크 보기 →</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 칸반 뷰 -->
+    <div id="proj-kanban-view" style="display:none; flex:1; overflow:hidden;">
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; height:100%;">
+
+        <!-- 할 일 -->
+        <div style="display:flex; flex-direction:column; border-right:1px solid var(--border); background:var(--bg);">
+          <div style="padding:14px 16px; border-bottom:1px solid var(--border); background:var(--surface);">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:12px; font-weight:600; color:var(--text-2);">할 일</span>
+              <span id="todo-count" style="font-size:11px; padding:1px 7px; border-radius:10px; background:var(--surface-2); color:var(--text-3);">0</span>
+            </div>
+          </div>
+          <div id="kanban-todo" style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px;"></div>
+          <div style="padding:10px 12px; border-top:1px solid var(--border);">
+            <button onclick="addTask('todo')" style="width:100%; background:none; border:1px dashed var(--border-2); border-radius:8px; padding:8px; font-size:12px; color:var(--text-3); cursor:pointer; font-family:var(--font-sans);">+ 태스크 추가</button>
+          </div>
+        </div>
+
+        <!-- 진행 중 (WIP Limit: 2) -->
+        <div style="display:flex; flex-direction:column; border-right:1px solid var(--border); background:var(--bg);">
+          <div style="padding:14px 16px; border-bottom:1px solid var(--border); background:var(--surface);">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:12px; font-weight:600; color:var(--text-2);">진행 중</span>
+              <span id="doing-count" style="font-size:11px; padding:1px 7px; border-radius:10px; background:#EBF0F7; color:var(--accent);">0</span>
+              <span style="font-size:10px; color:var(--text-3); margin-left:auto;">최대 2개</span>
+            </div>
+          </div>
+          <div id="kanban-doing" style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+
+        <!-- 완료 (기본 접힘) -->
+        <div style="display:flex; flex-direction:column; background:var(--bg);">
+          <div style="padding:14px 16px; border-bottom:1px solid var(--border); background:var(--surface); cursor:pointer;" onclick="toggleDone()">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:12px; font-weight:600; color:var(--text-3);">완료</span>
+              <span id="done-count" style="font-size:11px; padding:1px 7px; border-radius:10px; background:var(--surface-2); color:var(--text-3);">0</span>
+              <span id="done-toggle-icon" style="font-size:11px; color:var(--text-3); margin-left:auto;">▸ 펼치기</span>
+            </div>
+          </div>
+          <div id="kanban-done" style="flex:1; overflow-y:auto; padding:12px; display:none; flex-direction:column; gap:8px;"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ SCREEN 3: Monthly Planning ════════════════════════════ -->
+<div class="screen" id="screen-monthly">
+  <div style="display:flex; flex-direction:column; height:100%; background:var(--bg);">
+
+    <!-- Month header -->
+    <div style="display:flex; align-items:center; gap:16px; padding:16px 28px; background:var(--surface); border-bottom:1px solid var(--border);">
+      <button style="background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; font-size:13px; cursor:pointer; color:var(--text-2);" onclick="changeMonth(-1)">‹</button>
+      <span id="month-title" style="font-family:var(--font-sans); font-size:20px; font-weight:600; color:var(--text-1)">2026년 6월</span>
+      <button style="background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; font-size:13px; cursor:pointer; color:var(--text-2);" onclick="changeMonth(1)">›</button>
+      <div style="flex:1"></div>
+
+      <!-- Google Calendar 연결 상태 -->
+      <div id="gcal-disconnected" style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:12px; color:var(--text-3);">Google Calendar</span>
+        <button id="gc-connect-btn" onclick="connectGoogleCalendar()"
+          style="display:flex; align-items:center; gap-6px; padding:6px 14px; background:white; border:1px solid var(--border-2); border-radius:20px; font-size:12px; font-family:var(--font-sans); cursor:pointer; color:var(--text-2); gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" style="flex-shrink:0">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Google Calendar 연결하기
+        </button>
+      </div>
+
+      <div id="gcal-connected" style="display:none; align-items:center; gap:8px;">
+        <div style="width:7px; height:7px; border-radius:50%; background:#34A853;"></div>
+        <span style="font-size:12px; color:var(--text-2);">Google Calendar 연결됨</span>
+        <button onclick="disconnectGoogleCalendar()"
+          style="padding:4px 10px; background:transparent; border:1px solid var(--border); border-radius:20px; font-size:11px; font-family:var(--font-sans); cursor:pointer; color:var(--text-3);">연결 해제</button>
+      </div>
+
+      <button onclick="openAddEvent(new Date().toISOString().slice(0,10))" style="background:var(--accent); color:white; border:none; border-radius:20px; padding:7px 16px; font-size:12px; font-family:var(--font-sans); cursor:pointer;">+ 일정 추가</button>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 300px; flex:1; overflow:hidden;">
+
+      <!-- Calendar grid -->
+      <div style="overflow-y:auto; padding:24px 28px;">
+        <div class="annotation" style="margin-bottom:16px;">
+          💡 <strong>월간 계획의 역할:</strong> 프로젝트 마감일과 주요 이정표를 먼저 배치. 이게 주차별 목표와 데일리 MIT의 기준이 됨.
+        </div>
+
+        <!-- Day headers -->
+        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:1px; margin-bottom:2px;">
+          <div style="text-align:center; font-size:11px; color:var(--text-3); padding:6px 0; font-weight:500;">일</div>
+          <div style="text-align:center; font-size:11px; color:var(--text-3); padding:6px 0; font-weight:500;">월</div>
+          <div style="text-align:center; font-size:11px; color:var(--text-3); padding:6px 0; font-weight:500;">화</div>
+          <div style="text-align:center; font-size:11px; color:var(--text-3); padding:6px 0; font-weight:500;">수</div>
+          <div style="text-align:center; font-size:11px; color:var(--text-3); padding:6px 0; font-weight:500;">목</div>
+          <div style="text-align:center; font-size:11px; color:var(--text-3); padding:6px 0; font-weight:500;">금</div>
+          <div style="text-align:center; font-size:11px; color:var(--text-3); padding:6px 0; font-weight:500;">토</div>
+        </div>
+
+        <!-- Calendar cells: JS로 동적 생성 -->
+        <div id="cal-grid" style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px;"></div>
+
+        <!-- Legend -->
+        <div style="display:flex; gap:16px; margin-top:16px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-3)">
+            <div style="width:10px;height:10px;border-radius:2px;background:#C8956C"></div>논문
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-3)">
+            <div style="width:10px;height:10px;border-radius:2px;background:#6B9E8A"></div>Global Facilitator
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-3)">
+            <div style="width:10px;height:10px;border-radius:2px;background:#7A6EBA"></div>Pibo 연구
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-3)">
+            <div style="width:10px;height:10px;border-radius:2px;background:#C0C0C0"></div>간병
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Monthly Goals (localStorage 저장) -->
+      <div style="border-left:1px solid var(--border); background:var(--surface); overflow-y:auto; padding:20px 18px;">
+        <div class="section-label" style="margin-bottom:14px;" id="monthly-goal-title">— 월 목표</div>
+        <div id="monthly-goals-list" style="display:flex; flex-direction:column; gap:14px;"></div>
+        <div class="annotation" style="margin-top:16px;">
+          💡 월간 목표는 자유 텍스트. 주차 계획에서 이 목표를 주별로 나눠 배분.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GCal access_denied 도움말 모달 ════════════════════════════ -->
+<div id="gcal-help-modal" style="display:none; position:fixed; inset:0; background:rgba(28,24,20,.4); backdrop-filter:blur(3px); z-index:3000; align-items:center; justify-content:center;">
+  <div style="background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); width:420px; padding:28px;">
+    <div style="font-size:15px; font-weight:700; color:var(--text-1); margin-bottom:6px;">Google Calendar 연결 실패</div>
+    <div style="font-size:13px; color:var(--text-2); margin-bottom:20px; line-height:1.6;">앱이 테스트 모드입니다. 아래 절차로 본인 이메일을 테스트 사용자로 등록하면 바로 연결됩니다.</div>
+    <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+      <div style="display:flex; gap:10px; align-items:flex-start;">
+        <div style="min-width:22px; height:22px; border-radius:50%; background:var(--accent); color:white; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center;">1</div>
+        <div style="font-size:13px; color:var(--text-1); line-height:1.5;"><a href="https://console.cloud.google.com" target="_blank" style="color:var(--accent); text-decoration:none;">console.cloud.google.com</a> 접속</div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:flex-start;">
+        <div style="min-width:22px; height:22px; border-radius:50%; background:var(--accent); color:white; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center;">2</div>
+        <div style="font-size:13px; color:var(--text-1); line-height:1.5;"><b>APIs &amp; Services → OAuth 동의 화면</b> 클릭</div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:flex-start;">
+        <div style="min-width:22px; height:22px; border-radius:50%; background:var(--accent); color:white; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center;">3</div>
+        <div style="font-size:13px; color:var(--text-1); line-height:1.5;"><b>테스트 사용자</b> 섹션 → <b>+ ADD USERS</b></div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:flex-start;">
+        <div style="min-width:22px; height:22px; border-radius:50%; background:var(--accent); color:white; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center;">4</div>
+        <div style="font-size:13px; color:var(--text-1); line-height:1.5;"><code style="background:var(--surface-2); padding:2px 6px; border-radius:4px; font-size:12px;">boa532@gmail.com</code> 입력 → 저장</div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:flex-start;">
+        <div style="min-width:22px; height:22px; border-radius:50%; background:var(--accent); color:white; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center;">5</div>
+        <div style="font-size:13px; color:var(--text-1); line-height:1.5;">이 페이지로 돌아와서 <b>다시 연결</b> 클릭</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+      <button onclick="closeGCalHelpModal()" style="padding:9px 20px; background:var(--surface-2); border:none; border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-sans); cursor:pointer; color:var(--text-2);">닫기</button>
+      <button onclick="closeGCalHelpModal(); connectGoogleCalendar();" style="padding:9px 20px; background:var(--accent); border:none; border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-sans); color:white; cursor:pointer; font-weight:500;">다시 연결</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 이벤트 추가 모달 ════════════════════════════════════════ -->
+<div id="event-modal" style="display:none; position:fixed; inset:0; background:rgba(28,24,20,.4); backdrop-filter:blur(3px); z-index:2000; align-items:center; justify-content:center;" onclick="closeEventModal(event)">
+  <div style="background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); width:360px; padding:24px;" onclick="event.stopPropagation()">
+    <div style="font-size:15px; font-weight:700; color:var(--text-1); margin-bottom:18px;" id="event-modal-title">일정 추가</div>
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <input id="ev-title" placeholder="일정 제목" style="padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-sans); outline:none; color:var(--text-1);">
+      <input id="ev-date" type="date" style="padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-sans); outline:none; color:var(--text-1);">
+      <select id="ev-project" style="padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-sans); outline:none; color:var(--text-1); background:var(--surface);">
+        <option value="">프로젝트 없음</option>
+        <option value="thesis">논문</option>
+        <option value="pibo">Pibo 연구</option>
+        <option value="gf">Global Facilitator</option>
+        <option value="ai">AI Digital Literacy</option>
+        <option value="lecture">강의 준비</option>
+        <option value="care">간병</option>
+        <option value="personal">개인</option>
+      </select>
+      <input id="ev-memo" placeholder="메모 (선택)" style="padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-sans); outline:none; color:var(--text-1);">
+    </div>
+    <div style="display:flex; gap:8px; margin-top:20px;">
+      <button id="ev-delete-btn" onclick="deleteEvent()" style="display:none; padding:9px 14px; background:transparent; border:1px solid var(--urgent); border-radius:var(--radius-sm); font-size:12px; font-family:var(--font-sans); color:var(--urgent); cursor:pointer;">삭제</button>
+      <div style="flex:1"></div>
+      <button onclick="closeEventModal()" style="padding:9px 16px; background:var(--surface-2); border:none; border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-sans); cursor:pointer; color:var(--text-2);">취소</button>
+      <button onclick="saveEvent()" style="padding:9px 16px; background:var(--accent); border:none; border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-sans); color:white; cursor:pointer; font-weight:500;">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Block Edit Modal ═══════════════════════════════════════ -->
+<div id="block-modal" style="display:none; position:fixed; inset:0; background:rgba(28,24,20,.4); backdrop-filter:blur(3px); z-index:2000; align-items:center; justify-content:center;" onclick="closeBlockModal(event)">
+  <div style="background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); width:340px; padding:24px;" onclick="event.stopPropagation()">
+    <div style="font-size:15px; font-weight:700; color:var(--text-1); margin-bottom:18px;" id="block-modal-title">블록 추가</div>
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <input id="blk-title" placeholder="블록 제목 (예: 논문 작성)" style="padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-sans); outline:none; color:var(--text-1); background:var(--bg);">
+      <div style="display:flex; gap:8px;">
+        <input id="blk-start" type="time" style="flex:1; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-sans); outline:none; color:var(--text-1); background:var(--bg);">
+        <span style="align-self:center; color:var(--text-3); font-size:12px;">~</span>
+        <input id="blk-end" type="time" style="flex:1; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-sans); outline:none; color:var(--text-1); background:var(--bg);">
+      </div>
+      <select id="blk-type" style="padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-sans); outline:none; color:var(--text-1); background:var(--bg);">
+        <option value="deep-work">Deep Work</option>
+        <option value="other">일반</option>
+        <option value="break">휴식</option>
+        <option value="exercise">운동</option>
+        <option value="care">간병</option>
+      </select>
+      <select id="blk-project" style="padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-sans); outline:none; color:var(--text-1); background:var(--bg);">
+        <option value="">프로젝트 없음</option>
+        <option value="thesis">논문</option>
+        <option value="pibo">Pibo 연구</option>
+        <option value="gf">Global Facilitator</option>
+        <option value="ai">AI Digital Literacy</option>
+        <option value="lecture">강의 준비</option>
+      </select>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:20px;">
+      <button id="blk-delete-btn" onclick="deleteBlock()" style="display:none; padding:9px 14px; background:transparent; border:1px solid var(--urgent); border-radius:var(--radius-sm); font-size:12px; font-family:var(--font-sans); color:var(--urgent); cursor:pointer;">삭제</button>
+      <div style="flex:1"></div>
+      <button onclick="closeBlockModal()" style="padding:9px 16px; background:var(--surface-2); border:none; border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-sans); cursor:pointer; color:var(--text-2);">취소</button>
+      <button onclick="saveBlock()" style="padding:9px 16px; background:var(--accent); border:none; border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-sans); color:white; cursor:pointer; font-weight:500;">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 3: Weekly Planning ═════════════════════════════ -->
+<div class="screen" id="screen-weekly">
+  <div style="display:flex; flex-direction:column; height:100%; background:var(--bg);">
+
+    <!-- Week header -->
+    <div style="display:flex; align-items:center; gap:12px; padding:14px 28px; background:var(--surface); border-bottom:1px solid var(--border);">
+      <button onclick="changeWeek(-1)" style="background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; font-size:13px; cursor:pointer; color:var(--text-2);">‹</button>
+      <div>
+        <span id="weekly-title" style="font-family:var(--font-sans); font-size:18px; font-weight:600; color:var(--text-1)"></span>
+        <span id="weekly-range" style="font-size:13px; color:var(--text-3); margin-left:8px;"></span>
+      </div>
+      <button onclick="changeWeek(1)" style="background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; font-size:13px; cursor:pointer; color:var(--text-2);">›</button>
+      <div style="flex:1"></div>
+      <span onclick="navigateTo('screen-monthly')" style="font-size:12px; color:var(--accent); cursor:pointer;">← 월간 목표 보기</span>
+    </div>
+
+    <!-- Body -->
+    <div style="overflow-y:auto; flex:1; padding:28px; max-width:680px; width:100%; margin:0 auto; display:flex; flex-direction:column; gap:28px;">
+
+      <!-- Context from monthly (동적) -->
+      <div id="weekly-monthly-context" style="padding:12px 16px; background:var(--accent-bg); border-radius:var(--radius); border:1px solid #C5DDD5; font-size:12px; color:var(--text-2); line-height:1.7;">
+        <span style="font-size:11px; color:var(--accent); font-weight:500; display:block; margin-bottom:4px;">이번 달 목표에서</span>
+        <span id="weekly-monthly-context-body">월간 목표 화면에서 목표를 입력하면 여기 표시됩니다.</span>
+      </div>
+
+      <!-- Weekly goals (3개, localStorage 저장) -->
+      <div>
+        <div class="section-label" style="margin-bottom:14px;">이번 주 목표 — 월간 목표에서 이번 주에 할 것만</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; align-items:flex-start; gap:12px; padding:14px 16px; background:var(--surface); border:1.5px solid var(--accent); border-radius:var(--radius);">
+            <span style="width:20px; height:20px; border-radius:50%; background:var(--accent); color:white; font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">1</span>
+            <textarea id="wg-1" style="flex:1; border:none; outline:none; font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; background:transparent; line-height:1.6;" rows="2" placeholder="이번 주 가장 중요한 목표"></textarea>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:12px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);">
+            <span style="width:20px; height:20px; border-radius:50%; background:var(--surface-2); color:var(--text-3); font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">2</span>
+            <textarea id="wg-2" style="flex:1; border:none; outline:none; font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; background:transparent; line-height:1.6;" rows="2" placeholder="두 번째 목표"></textarea>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:12px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);">
+            <span style="width:20px; height:20px; border-radius:50%; background:var(--surface-2); color:var(--text-3); font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">3</span>
+            <textarea id="wg-3" style="flex:1; border:none; outline:none; font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; background:transparent; line-height:1.6;" rows="2" placeholder="세 번째 목표"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Weekly memo (localStorage 저장) -->
+      <div>
+        <div class="section-label" style="margin-bottom:10px;">이번 주 메모</div>
+        <textarea id="weekly-memo" style="width:100%; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; outline:none; line-height:1.8; min-height:100px; box-sizing:border-box;" placeholder="이번 주 챙길 것, 신경 쓸 것, 컨디션 메모 등..."></textarea>
+      </div>
+
+      <!-- GCal events for the week -->
+      <div id="weekly-gcal-section" style="display:none;">
+        <div class="section-label" style="margin-bottom:12px;">이번 주 Google Calendar 일정</div>
+        <div id="weekly-gcal-events" style="display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+
+      <!-- Save -->
+      <div>
+        <button onclick="saveWeeklyGoals()" style="width:100%; padding:13px; background:var(--accent); color:white; border:none; border-radius:var(--radius); font-size:13px; font-family:var(--font-sans); font-weight:500; cursor:pointer;">
+          이번 주 목표 저장 → Daily Planning에 반영
+        </button>
+        <div id="weekly-save-msg" style="display:none; text-align:center; font-size:12px; color:var(--accent); margin-top:8px;">저장되었습니다 ✓</div>
+      </div>
+
+      <div class="annotation">
+        💡 매주 월요일 아침 5분. 월간 목표 보면서 이번 주 목표 3개만 추려서 입력. 저장하면 Daily Planning에서 MIT를 설정할 때 이 목표가 위에 보임.
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 4: Daily Planning ══════════════════════════════ -->
+<div class="screen" id="screen-daily">
+  <div style="display:flex; flex-direction:column; height:100%; background:var(--bg);">
+
+    <!-- Date header -->
+    <div style="display:flex; align-items:center; gap:12px; padding:14px 28px; background:var(--surface); border-bottom:1px solid var(--border);">
+      <div>
+        <span id="daily-date-title" style="font-family:var(--font-sans); font-size:18px; font-weight:600; color:var(--text-1)"></span>
+        <span id="daily-day-label" style="font-size:13px; color:var(--text-3); margin-left:8px;"></span>
+      </div>
+      <div style="flex:1"></div>
+      <span onclick="navigateTo('screen-weekly')" style="font-size:12px; color:var(--accent); cursor:pointer;">← 이번 주 목표 보기</span>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 340px; flex:1; overflow:hidden;">
+
+      <!-- Left: Main planning -->
+      <div style="overflow-y:auto; padding:24px 28px; display:flex; flex-direction:column; gap:24px;">
+
+        <!-- Context from weekly (동적) -->
+        <div id="daily-weekly-context" style="padding:12px 16px; background:var(--accent-bg); border-radius:var(--radius); border:1px solid #C5DDD5;">
+          <div style="font-size:11px; color:var(--accent); font-weight:500; margin-bottom:4px;">이번 주 목표에서</div>
+          <div id="daily-weekly-context-body" style="font-size:12px; color:var(--text-2); line-height:1.6;">
+            주간 목표 화면에서 목표를 입력하면 여기 표시됩니다.
+          </div>
+        </div>
+
+        <!-- MIT (dashboard_mit 공유) -->
+        <div>
+          <div class="section-label" style="margin-bottom:12px;">오늘의 MIT — 가장 중요한 3가지</div>
+          <div id="daily-mit-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+
+        <!-- Time blocks (dashboard_schedule 공유) -->
+        <div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+            <div class="section-label" style="margin-bottom:0;">오늘 시간 블록</div>
+            <button onclick="openBlockModal()" style="font-size:11px; padding:4px 10px; background:var(--accent); color:white; border:none; border-radius:var(--radius-sm); cursor:pointer; font-family:var(--font-sans);">+ 블록 추가</button>
+          </div>
+          <div id="daily-schedule-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+        </div>
+
+        <!-- Evening reflection -->
+        <div>
+          <div class="section-label" style="margin-bottom:10px;">하루 회고 — 저녁에 작성</div>
+          <textarea id="daily-review" style="width:100%; padding:12px 14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; outline:none; line-height:1.6; box-sizing:border-box;" rows="3" placeholder="오늘 완료한 것, 남은 것, 내일로 넘길 것..."></textarea>
+        </div>
+
+        <div class="annotation">
+          💡 MIT와 시간 블록은 홈 화면과 데이터가 연결되어 있어요. 여기서 수정하면 홈에도 반영됩니다.
+        </div>
+      </div>
+
+      <!-- Right: Quick notes -->
+      <div style="border-left:1px solid var(--border); background:var(--surface); overflow-y:auto; padding:20px 18px;">
+        <div class="section-label" style="margin-bottom:10px;">오늘의 Quick Notes</div>
+        <div style="font-size:11px; color:var(--text-3); margin-bottom:12px;">작업 중 떠오른 것, 막힌 것, 다음 행동</div>
+        <textarea id="daily-notes" style="width:100%; border:1px solid var(--border); border-radius:var(--radius); padding:12px; font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; outline:none; line-height:1.8; min-height:200px; background:var(--bg); box-sizing:border-box;" placeholder="— 작업 중 떠오른 것&#10;— 막힌 부분&#10;— 다음에 할 것"></textarea>
+
+        <div style="margin-top:20px;" id="daily-inbox-section">
+          <div class="section-label" style="margin-bottom:10px;">인박스에서 온 것</div>
+          <div id="daily-inbox-list" style="display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--text-3);">
+            <span>인박스(⌘K)에서 캡처한 항목이 여기에 표시됩니다.</span>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <div id="daily-save-msg" style="display:none; font-size:12px; color:var(--accent); margin-bottom:8px; text-align:center;">저장되었습니다 ✓</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 5: Inbox (Quick Capture 결과물) ═══════════════ -->
+<div class="screen" id="screen-capture">
+  <div style="display:flex; flex-direction:column; height:100%; background:var(--bg);">
+
+    <!-- 헤더 -->
+    <div style="display:flex; align-items:center; gap:12px; padding:16px 28px; background:var(--surface); border-bottom:1px solid var(--border);">
+      <span style="font-size:18px; font-weight:700; color:var(--text-1);">인박스</span>
+      <span id="inbox-badge" style="font-size:11px; padding:2px 9px; border-radius:10px; background:var(--accent-bg); color:var(--accent); font-weight:600;">0</span>
+      <div style="flex:1"></div>
+      <kbd style="background:var(--surface-2); border:1px solid var(--border-2); padding:3px 8px; border-radius:5px; font-size:11px; color:var(--text-3); font-family:var(--font-sans);">⌘K</kbd>
+      <span style="font-size:12px; color:var(--text-3);">어디서든 캡처</span>
+    </div>
+
+    <!-- 인박스 목록 -->
+    <div style="overflow-y:auto; flex:1; padding:20px 28px;">
+      <div id="inbox-empty" style="display:none; text-align:center; padding:60px 0; color:var(--text-3);">
+        <div style="font-size:32px; margin-bottom:12px;">⚡</div>
+        <div style="font-size:14px; margin-bottom:6px;">인박스가 비어 있어요</div>
+        <div style="font-size:12px;">⌘K 로 언제든 캡처할 수 있어요</div>
+      </div>
+      <div id="inbox-list" style="display:flex; flex-direction:column; gap:6px; max-width:680px; margin:0 auto;"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ SCREEN 3: Design System ══════════════════════════════ -->
+<div class="screen" id="screen-ds">
+  <div class="ds-screen">
+    <div class="ds-inner">
+      <div class="ds-h1">Design System</div>
+      <div class="ds-p">Research OS — 디자인 토큰 및 원칙</div>
+
+      <!-- Colors -->
+      <div class="ds-block">
+        <div class="ds-block-title">색상 팔레트</div>
+        <div class="color-row">
+          <div class="color-swatch">
+            <div class="swatch-block" style="background:#F5F2EE"></div>
+            <div class="swatch-name">Background</div>
+            <div class="swatch-value">#F5F2EE</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch-block" style="background:#FFFFFF"></div>
+            <div class="swatch-name">Surface</div>
+            <div class="swatch-value">#FFFFFF</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch-block" style="background:#F0EDE9"></div>
+            <div class="swatch-name">Surface 2</div>
+            <div class="swatch-value">#F0EDE9</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch-block" style="background:#E2DDD8"></div>
+            <div class="swatch-name">Border</div>
+            <div class="swatch-value">#E2DDD8</div>
+          </div>
+        </div>
+        <div class="color-row">
+          <div class="color-swatch">
+            <div class="swatch-block" style="background:#1C1814"></div>
+            <div class="swatch-name">Text 1</div>
+            <div class="swatch-value">#1C1814</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch-block" style="background:#5C574F"></div>
+            <div class="swatch-name">Text 2</div>
+            <div class="swatch-value">#5C574F</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch-block" style="background:#9C9790"></div>
+            <div class="swatch-name">Text 3</div>
+            <div class="swatch-value">#9C9790</div>
+          </div>
+        </div>
+        <div class="color-row">
+          <div class="color-swatch">
+            <div class="swatch-block" style="background:#4D7C6A"></div>
+            <div class="swatch-name">Accent (Sage)</div>
+            <div class="swatch-value">#4D7C6A</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch-block" style="background:#EAF2EE"></div>
+            <div class="swatch-name">Accent BG</div>
+            <div class="swatch-value">#EAF2EE</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch-block" style="background:#B85C38"></div>
+            <div class="swatch-name">Urgent</div>
+            <div class="swatch-value">#B85C38</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch-block" style="background:#7A6EBA"></div>
+            <div class="swatch-name">Waiting</div>
+            <div class="swatch-value">#7A6EBA</div>
+          </div>
+        </div>
+        <div class="annotation">
+          💡 배경은 순백(#FFF)이 아닌 따뜻한 오프화이트. 눈의 피로를 줄이고 장시간 작업에 적합. 액센트는 sage green — 차분하고 자연스러운 진행 신호. 빨강 대신 terracotta로 urgency 표현 (공격적이지 않음).
+        </div>
+      </div>
+
+      <!-- Typography -->
+      <div class="ds-block">
+        <div class="ds-block-title">타이포그래피</div>
+        <div class="type-samples">
+          <div class="type-row">
+            <div class="type-label">Hero Title (Bold)</div>
+            <div style="font-size:22px; font-weight:700; color:var(--text-1)">논문 2장 도입부 수정</div>
+          </div>
+          <div class="type-row">
+            <div class="type-label">Section Title</div>
+            <div style="font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3)">오늘의 MIT</div>
+          </div>
+          <div class="type-row">
+            <div class="type-label">Body (Sans)</div>
+            <div style="font-size:13px; color:var(--text-1)">Pibo 선행연구 2편 읽기 — AI 교육용 로봇 활용 연구</div>
+          </div>
+          <div class="type-row">
+            <div class="type-label">Caption / Meta</div>
+            <div style="font-size:11px; color:var(--text-3)">예상 90분 · 마감 D-8 · 교수님 피드백 반영</div>
+          </div>
+        </div>
+        <div class="annotation" style="margin-top:12px">
+          💡 전체 Noto Sans KR 통일. Hero만 font-weight 700으로 시각적 위계 구분.
+        </div>
+      </div>
+
+      <!-- Spacing & Radius -->
+      <div class="ds-block">
+        <div class="ds-block-title">여백 · 라운딩</div>
+        <div style="display:flex; gap:16px; align-items:flex-end; margin-bottom:12px;">
+          <div style="text-align:center">
+            <div style="width:40px; height:40px; background:var(--accent-bg); border-radius:6px; margin:0 auto 6px;"></div>
+            <div style="font-size:11px; color:var(--text-3)">sm 6px</div>
+          </div>
+          <div style="text-align:center">
+            <div style="width:56px; height:40px; background:var(--accent-bg); border-radius:12px; margin:0 auto 6px;"></div>
+            <div style="font-size:11px; color:var(--text-3)">md 12px</div>
+          </div>
+          <div style="text-align:center">
+            <div style="width:80px; height:40px; background:var(--accent-bg); border-radius:18px; margin:0 auto 6px;"></div>
+            <div style="font-size:11px; color:var(--text-3)">lg 18px</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Design Principles -->
+      <div class="ds-block">
+        <div class="ds-block-title">설계 원칙</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div style="padding:14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);">
+            <div style="font-size:18px; margin-bottom:6px;">🎯</div>
+            <div style="font-size:13px; font-weight:500; margin-bottom:4px;">한 번에 하나</div>
+            <div style="font-size:12px; color:var(--text-3)">화면을 열면 할 일 1개만 보임. 전체 목록은 숨김.</div>
+          </div>
+          <div style="padding:14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);">
+            <div style="font-size:18px; margin-bottom:6px;">⚡</div>
+            <div style="font-size:13px; font-weight:500; margin-bottom:4px;">즉시 캡처</div>
+            <div style="font-size:12px; color:var(--text-3)">생각이 날 때 3초 안에 기록. 분류는 나중에.</div>
+          </div>
+          <div style="padding:14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);">
+            <div style="font-size:18px; margin-bottom:6px;">🔕</div>
+            <div style="font-size:13px; font-weight:500; margin-bottom:4px;">숫자 억제</div>
+            <div style="font-size:12px; color:var(--text-3)">"미완료 47개" 같은 압박 숫자는 기본 비표시.</div>
+          </div>
+          <div style="padding:14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);">
+            <div style="font-size:18px; margin-bottom:6px;">⌨️</div>
+            <div style="font-size:13px; font-weight:500; margin-bottom:4px;">키보드 중심</div>
+            <div style="font-size:12px; color:var(--text-3)">핵심 동작은 모두 단축키로 처리 가능.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── 최상단 변수 선언 (TDZ 방지: 함수보다 먼저 참조되는 const/let) ──
+  const GC_CLIENT_ID = '158238441630-977osje88s8ag2e5iqjcgqkq2fpfm3o4.apps.googleusercontent.com';
+  const GC_SCOPES    = 'https://www.googleapis.com/auth/calendar.readonly';
+  let tokenClient   = null;
+  let gisInited     = false;
+  let gcalConnected = false;
+  let accessToken   = null;
+
+  const KANBAN_KEY = 'dashboard_kanban';
+  const PROJECTS = {
+    thesis:  { name: '논문',                color: '#C0432A', statusBg: 'var(--urgent-bg)', statusColor: 'var(--urgent)',  deadline: '마감 6/30' },
+    pibo:    { name: 'Pibo 연구 설계',       color: '#7A6EBA', statusBg: '#F0EEF9',          statusColor: '#7A6EBA',        deadline: '마감 미정' },
+    gf:      { name: 'Global Facilitator',  color: '#4A9E7A', statusBg: '#E6F5EE',          statusColor: '#4A9E7A',        deadline: 'Week 3 마감 6/25' },
+    ai:      { name: 'AI Digital Literacy', color: '#4A6FA5', statusBg: 'var(--accent-bg)', statusColor: 'var(--accent)',  deadline: '마감 미정' },
+    lecture: { name: '강의 준비',            color: '#C09840', statusBg: '#FBF5E6',          statusColor: '#8A6820',        deadline: '다음 강의 7/10' },
+  };
+  const KANBAN_SEED = {
+    thesis:  { todo: ['2장 도입부 수정 — 연구 배경 재구성','3장 연구방법 보완','결론 초안 작성','참고문헌 정리'], doing: ['1장 교수님 피드백 반영 ⏳'], done: ['1장 제출','주제 확정','선행연구 검토 완료'] },
+    pibo:    { todo: ['선행연구 6편 읽기 (4/10 완료)','연구질문 2차 초안','IRB 필요 여부 확인','관찰 프로토콜 설계'], doing: ['Hobbs 2017 읽기','연구질문 1차 메모'], done: ['주제 선정','선행연구 4편 읽기'] },
+    gf:      { todo: ['Week 4 동기 세션 준비','Week 4 비동기 과제'], doing: ['Week 3 비동기 과제 제출'], done: ['Week 1 완료','Week 2 완료','오리엔테이션 참가'] },
+    ai:      { todo: ['키워드 정리 + 논문 탐색','연구 범위 설정','선행연구 맵 작성'], doing: ['Hobbs 2017 읽기'], done: [] },
+    lecture: { todo: ['커리큘럼 초안 작성','PPT 슬라이드 제작','예제 코드 준비','실습 자료 정리'], doing: [], done: [] },
+  };
+
+  /* ── 화면 전환 ─────────────────────────────────────────── */
+  /* ════════════════════════════════════════════════════════════
+     MIT — localStorage + 프로젝트 선택 + 태스크 제안
+     ════════════════════════════════════════════════════════════ */
+
+  const MIT_KEY = 'dashboard_mit';
+
+  const PROJ_META = {
+    thesis:  { name: '논문',                color: '#C0432A', bg: '#FDF0EE' },
+    pibo:    { name: 'Pibo 연구',            color: '#7A6EBA', bg: '#F0EEF9' },
+    gf:      { name: 'Global Facilitator',  color: '#4A9E7A', bg: '#E6F5EE' },
+    ai:      { name: 'AI Digital Literacy', color: '#4A6FA5', bg: '#EBF0F7' },
+    lecture: { name: '강의 준비',            color: '#C09840', bg: '#FBF5E6' },
+  };
+
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function emptyTask() { return { text: '', done: false, project: null }; }
+
+  function loadMITData() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(MIT_KEY) || '{}');
+      if (raw.date !== todayStr()) {
+        return { date: todayStr(), tasks: [emptyTask(), emptyTask(), emptyTask()] };
+      }
+      // 구 데이터 마이그레이션 (project 필드 없으면 추가)
+      raw.tasks = raw.tasks.map(t => ({ project: null, ...t }));
+      return raw;
+    } catch(e) {
+      return { date: todayStr(), tasks: [emptyTask(), emptyTask(), emptyTask()] };
+    }
+  }
+
+  function saveMITData(data) { localStorage.setItem(MIT_KEY, JSON.stringify(data)); }
+
+  let mitData = loadMITData();
+
+  function renderMIT() {
+    const list = document.getElementById('mit-list');
+    list.innerHTML = '';
+    closeProjPicker();
+
+    mitData.tasks.forEach((task, i) => {
+      const isEmpty  = !task.text.trim();
+      const isActive = !task.done && !isEmpty && i === firstActive();
+      const proj     = task.project ? PROJ_META[task.project] : null;
+
+      const item = document.createElement('div');
+      item.className = 'mit-item' +
+        (task.done ? ' done' : '') +
+        (isEmpty   ? ' empty' : '') +
+        (isActive  ? ' active' : '');
+      item.style.cssText = 'flex-direction:column; align-items:flex-start; gap:8px; padding:14px;';
+
+      /* ── 상단 행: 번호 + 프로젝트 버튼 + 체크 ── */
+      const row1 = document.createElement('div');
+      row1.style.cssText = 'display:flex; align-items:center; gap:8px; width:100%;';
+
+      const num = document.createElement('div');
+      num.className   = 'mit-num';
+      num.textContent = i + 1;
+      if (task.done) { num.style.opacity = '.4'; }
+      row1.appendChild(num);
+
+      // 프로젝트 선택 버튼
+      const projBtn = document.createElement('button');
+      projBtn.className = 'mit-proj-btn' + (proj ? ' has-proj' : '');
+      if (proj) {
+        projBtn.textContent       = proj.name + ' ▾';
+        projBtn.style.background  = proj.bg;
+        projBtn.style.color       = proj.color;
+        projBtn.style.borderColor = 'transparent';
+      } else {
+        projBtn.textContent = '프로젝트 ▾';
+      }
+      projBtn.disabled = task.done;
+      projBtn.addEventListener('click', e => { e.stopPropagation(); openProjPicker(i, projBtn); });
+      row1.appendChild(projBtn);
+
+      const spacer = document.createElement('div');
+      spacer.style.flex = '1';
+      row1.appendChild(spacer);
+
+      // 체크 버튼
+      if (!isEmpty) {
+        const check = document.createElement('div');
+        check.className   = 'mit-check';
+        check.style.cursor = 'pointer';
+        check.title       = task.done ? '완료 취소' : '완료 체크';
+        if (task.done) {
+          check.style.cssText += '; background:var(--surface-2); color:var(--text-3); border-color:transparent;';
+          check.textContent = '✓';
+        }
+        check.addEventListener('click', () => toggleMIT(i));
+        row1.appendChild(check);
+      }
+      item.appendChild(row1);
+
+      /* ── 텍스트 입력 ── */
+      const input = document.createElement('input');
+      input.type        = 'text';
+      input.className   = 'mit-input';
+      input.id          = `mit-input-${i}`;
+      input.value       = task.text;
+      input.placeholder = `MIT ${i+1} — 오늘 꼭 해야 할 일`;
+      input.disabled    = task.done;
+      input.addEventListener('input', () => {
+        mitData.tasks[i].text = input.value;
+        saveMITData(mitData);
+        updateHero();
+        // 텍스트 입력 시작하면 제안 숨김
+        const sugg = item.querySelector('.mit-suggestions');
+        if (sugg && input.value.trim()) sugg.style.display = 'none';
+      });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const next = document.getElementById(`mit-input-${i + 1}`);
+          if (next) next.focus(); else input.blur();
+        }
+      });
+      item.appendChild(input);
+
+      /* ── 프로젝트 태스크 제안 ── */
+      if (task.project && !task.done) {
+        const all   = loadKanbanAll();
+        const ptask = all[task.project] || { todo: [], doing: [] };
+        const suggestions = [...(ptask.doing), ...(ptask.todo)].slice(0, 5);
+
+        if (suggestions.length > 0) {
+          const sugg = document.createElement('div');
+          sugg.className    = 'mit-suggestions';
+          sugg.style.display = task.text.trim() ? 'none' : 'flex';
+
+          const label = document.createElement('div');
+          label.style.cssText = 'font-size:10px; color:var(--text-3); text-transform:uppercase; letter-spacing:.06em; margin-bottom:2px;';
+          label.textContent   = '프로젝트에서 선택';
+          sugg.appendChild(label);
+
+          suggestions.forEach(t => {
+            const chip = document.createElement('button');
+            chip.className   = 'mit-suggest-chip';
+            chip.textContent = t;
+            chip.addEventListener('click', e => {
+              e.preventDefault();
+              mitData.tasks[i].text = t;
+              saveMITData(mitData);
+              renderMIT();
+              updateHero();
+            });
+            sugg.appendChild(chip);
+          });
+          item.appendChild(sugg);
+
+          // 인풋 포커스/블러로 제안 토글
+          input.addEventListener('focus', () => { if (!input.value.trim()) sugg.style.display = 'flex'; });
+        }
+      }
+
+      list.appendChild(item);
+    });
+
+    updateHero();
+  }
+
+  /* ── 프로젝트 팝오버 ── */
+  function openProjPicker(idx, anchorEl) {
+    closeProjPicker();
+
+    const picker = document.createElement('div');
+    picker.id        = 'mit-proj-picker';
+    picker.className = 'mit-proj-picker';
+
+    Object.entries(PROJ_META).forEach(([projId, p]) => {
+      const opt = document.createElement('div');
+      opt.className = 'mit-proj-option';
+      opt.innerHTML = `<span class="dot" style="background:${p.color}"></span>${p.name}`;
+      if (mitData.tasks[idx].project === projId) opt.style.fontWeight = '600';
+      opt.addEventListener('click', () => {
+        mitData.tasks[idx].project = projId;
+        // 텍스트가 없으면 비워서 제안이 보이도록
+        if (!mitData.tasks[idx].text.trim()) mitData.tasks[idx].text = '';
+        saveMITData(mitData);
+        closeProjPicker();
+        renderMIT();
+        setTimeout(() => focusMIT(idx), 30);
+      });
+      picker.appendChild(opt);
+    });
+
+    // 프로젝트 없음
+    const noneOpt = document.createElement('div');
+    noneOpt.className   = 'mit-proj-option none-opt';
+    noneOpt.textContent = '프로젝트 없음';
+    noneOpt.addEventListener('click', () => {
+      mitData.tasks[idx].project = null;
+      saveMITData(mitData);
+      closeProjPicker();
+      renderMIT();
+    });
+    picker.appendChild(noneOpt);
+
+    const rect = anchorEl.getBoundingClientRect();
+    picker.style.top  = (rect.bottom + 6) + 'px';
+    picker.style.left = rect.left + 'px';
+    document.body.appendChild(picker);
+
+    setTimeout(() => {
+      document.addEventListener('click', closeProjPicker, { once: true });
+    }, 0);
+  }
+
+  function closeProjPicker() {
+    document.getElementById('mit-proj-picker')?.remove();
+  }
+
+  /* ── MIT 기타 동작 ── */
+  function firstActive() {
+    return mitData.tasks.findIndex(t => t.text.trim() && !t.done);
+  }
+
+  function toggleMIT(i) {
+    mitData.tasks[i].done = !mitData.tasks[i].done;
+    saveMITData(mitData);
+    renderMIT();
+  }
+
+  function completeCurrent() {
+    const i = firstActive();
+    if (i >= 0) toggleMIT(i);
+  }
+
+  function skipCurrent() {
+    const i = firstActive();
+    if (i < 0) return;
+    const [task] = mitData.tasks.splice(i, 1);
+    mitData.tasks.push(task);
+    saveMITData(mitData);
+    renderMIT();
+  }
+
+  function focusMIT(i) {
+    document.getElementById(`mit-input-${i}`)?.focus();
+  }
+
+  function clearMIT() {
+    if (!confirm('오늘 MIT를 초기화할까요?')) return;
+    mitData = { date: todayStr(), tasks: [emptyTask(), emptyTask(), emptyTask()] };
+    saveMITData(mitData);
+    renderMIT();
+  }
+
+  function updateHero() {
+    const i           = firstActive();
+    const heroTitle   = document.getElementById('hero-title');
+    const heroEmpty   = document.getElementById('hero-empty-msg');
+    const heroContent = document.getElementById('hero-content');
+    const heroActions = heroContent.querySelector('.hero-actions');
+    const heroProjLbl = document.getElementById('hero-proj-label');
+
+    if (i < 0) {
+      const hasAny = mitData.tasks.some(t => t.text.trim());
+      if (hasAny) {
+        heroEmpty.style.display   = 'none';
+        heroContent.style.display = '';
+        heroTitle.textContent     = '오늘 MIT 모두 완료! 🎉';
+        heroActions.style.display = 'none';
+        heroProjLbl.style.display = 'none';
+      } else {
+        heroEmpty.style.display   = '';
+        heroContent.style.display = 'none';
+      }
+      return;
+    }
+
+    heroEmpty.style.display   = 'none';
+    heroContent.style.display = '';
+    heroActions.style.display = '';
+    heroTitle.textContent     = mitData.tasks[i].text || '—';
+
+    // 프로젝트 라벨
+    const proj = mitData.tasks[i].project ? PROJ_META[mitData.tasks[i].project] : null;
+    if (proj) {
+      heroProjLbl.textContent   = proj.name;
+      heroProjLbl.style.display = '';
+      heroProjLbl.style.color   = proj.color;
+    } else {
+      heroProjLbl.style.display = 'none';
+    }
+  }
+
+  // 초기 렌더링
+  renderMIT();
+
+  /* ════════════════════════════════════════════════════════════
+     QUICK CAPTURE — 인박스 localStorage
+     ════════════════════════════════════════════════════════════ */
+
+  const INBOX_KEY = 'dashboard_inbox';
+  const PROJECTS_LABELS = {
+    thesis: '논문', pibo: 'Pibo 연구', gf: 'Global Facilitator',
+    ai: 'AI Digital Literacy', lecture: '강의 준비', none: '미분류'
+  };
+
+  function loadInbox() {
+    try { return JSON.parse(localStorage.getItem(INBOX_KEY) || '[]'); }
+    catch(e) { return []; }
+  }
+
+  function saveInbox(items) {
+    localStorage.setItem(INBOX_KEY, JSON.stringify(items));
+    updateInboxBadge();
+  }
+
+  function addToInbox(text) {
+    const items = loadInbox();
+    items.unshift({
+      id: Date.now().toString(36),
+      text: text.trim(),
+      project: null,
+      createdAt: new Date().toISOString()
+    });
+    saveInbox(items);
+    renderInbox();
+  }
+
+  function deleteInboxItem(id) {
+    const items = loadInbox().filter(i => i.id !== id);
+    saveInbox(items);
+    renderInbox();
+  }
+
+  function assignProject(id, proj) {
+    const items = loadInbox();
+    const item = items.find(i => i.id === id);
+    if (item) {
+      item.project = proj === 'none' ? null : proj;
+      saveInbox(items);
+      renderInbox();
+    }
+  }
+
+  function updateInboxBadge() {
+    const count = loadInbox().length;
+    const badge = document.getElementById('inbox-badge');
+    if (badge) badge.textContent = count;
+    // 탭에도 표시
+    const tab = document.querySelector('[onclick="showScreen(\'capture\')"]');
+    if (tab) tab.textContent = count > 0 ? `⚡ Inbox (${count})` : '⚡ Inbox';
+  }
+
+  function renderInbox() {
+    const items = loadInbox();
+    const list  = document.getElementById('inbox-list');
+    const empty = document.getElementById('inbox-empty');
+    if (!list) return;
+
+    if (items.length === 0) {
+      list.style.display = 'none';
+      empty.style.display = 'block';
+    } else {
+      list.style.display = 'flex';
+      empty.style.display = 'none';
+    }
+
+    list.innerHTML = '';
+    items.forEach(item => {
+      const el = document.createElement('div');
+      el.style.cssText = 'background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px 14px; display:flex; align-items:flex-start; gap:10px;';
+
+      const dot = document.createElement('div');
+      dot.style.cssText = 'width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:5px;';
+      el.appendChild(dot);
+
+      const body = document.createElement('div');
+      body.style.cssText = 'flex:1; min-width:0;';
+
+      const textEl = document.createElement('div');
+      textEl.style.cssText = 'font-size:13px; color:var(--text-1); margin-bottom:6px; line-height:1.5;';
+      textEl.textContent = item.text;
+      body.appendChild(textEl);
+
+      // 프로젝트 분류 셀렉트
+      const meta = document.createElement('div');
+      meta.style.cssText = 'display:flex; align-items:center; gap:8px; flex-wrap:wrap;';
+
+      const sel = document.createElement('select');
+      sel.style.cssText = 'font-size:11px; color:var(--text-3); border:1px solid var(--border); border-radius:6px; padding:2px 6px; background:var(--surface-2); font-family:var(--font-sans); cursor:pointer;';
+      sel.innerHTML = `
+        <option value="none"  ${!item.project ? 'selected':''}>📥 미분류</option>
+        <option value="thesis" ${item.project==='thesis'?'selected':''}>📝 논문</option>
+        <option value="pibo"   ${item.project==='pibo'  ?'selected':''}>🤖 Pibo 연구</option>
+        <option value="gf"     ${item.project==='gf'    ?'selected':''}>🌐 Global Facilitator</option>
+        <option value="ai"     ${item.project==='ai'    ?'selected':''}>💡 AI Digital Literacy</option>
+        <option value="lecture"${item.project==='lecture'?'selected':''}>📚 강의 준비</option>
+      `;
+      sel.addEventListener('change', () => assignProject(item.id, sel.value));
+      meta.appendChild(sel);
+
+      const time = document.createElement('span');
+      time.style.cssText = 'font-size:11px; color:var(--text-3);';
+      time.textContent = formatRelTime(item.createdAt);
+      meta.appendChild(time);
+
+      body.appendChild(meta);
+      el.appendChild(body);
+
+      const del = document.createElement('button');
+      del.style.cssText = 'background:none; border:none; color:var(--text-3); font-size:14px; cursor:pointer; padding:0 2px; line-height:1; flex-shrink:0;';
+      del.textContent = '×';
+      del.title = '삭제';
+      del.addEventListener('click', () => deleteInboxItem(item.id));
+      el.appendChild(del);
+
+      list.appendChild(el);
+    });
+
+    updateInboxBadge();
+  }
+
+  function formatRelTime(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1)  return '방금';
+    if (m < 60) return `${m}분 전`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}시간 전`;
+    return `${Math.floor(h/24)}일 전`;
+  }
+
+  /* ── Quick Capture 오버레이 제어 ──────────────────────────── */
+  function openCapture() {
+    const overlay = document.getElementById('qc-overlay');
+    overlay.style.display = 'flex';
+    const input = document.getElementById('qc-input');
+    input.value = '';
+    input.focus();
+    renderQCRecent();
+  }
+
+  function closeCapture(e) {
+    if (e && e.target !== document.getElementById('qc-overlay')) return;
+    document.getElementById('qc-overlay').style.display = 'none';
+  }
+
+  function renderQCRecent() {
+    const recentEl = document.getElementById('qc-recent');
+    const items = loadInbox().slice(0, 5);
+    if (items.length === 0) {
+      recentEl.innerHTML = '';
+      return;
+    }
+    recentEl.innerHTML = '<div style="font-size:11px;color:var(--text-3);padding:2px 8px 4px;letter-spacing:.05em;text-transform:uppercase;">최근 캡처</div>';
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; cursor:default;';
+      row.innerHTML = `<div style="width:5px;height:5px;border-radius:50%;background:var(--border-2);flex-shrink:0;"></div>
+        <span style="font-size:13px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.text}</span>`;
+      recentEl.appendChild(row);
+    });
+  }
+
+  // Quick Capture 입력 처리 — 이벤트 위임 방식 (overlay가 스크립트 이후 파싱되므로)
+  document.addEventListener('keydown', e => {
+    if (e.target.id !== 'qc-input') return;
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = e.target.value.trim();
+      if (!val) return;
+      addToInbox(val);
+      e.target.value = '';
+      const msg = document.getElementById('qc-saved-msg');
+      msg.style.display = 'block';
+      renderQCRecent();
+      setTimeout(() => {
+        msg.style.display = 'none';
+        document.getElementById('qc-overlay').style.display = 'none';
+      }, 600);
+    }
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      document.getElementById('qc-overlay').style.display = 'none';
+    }
+  }, true); // capture phase로 Esc 우선 처리
+
+  // 초기 인박스 렌더링
+  renderInbox();
+  updateInboxBadge();
+
+  /* ── Project Kanban ──────────────────────────────────────── */
+  /* ════════════════════════════════════════════════════════════
+     PROJECT KANBAN — localStorage 연동
+     ════════════════════════════════════════════════════════════ */
+
+  // KANBAN_KEY, PROJECTS, KANBAN_SEED → 스크립트 최상단으로 이동됨
+
+  function loadKanbanAll() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(KANBAN_KEY) || '{}');
+      // 빠진 프로젝트는 시드로 채움
+      Object.keys(KANBAN_SEED).forEach(id => {
+        if (!stored[id]) stored[id] = JSON.parse(JSON.stringify(KANBAN_SEED[id]));
+      });
+      return stored;
+    } catch(e) {
+      return JSON.parse(JSON.stringify(KANBAN_SEED));
+    }
+  }
+
+  function saveKanbanAll(data) {
+    localStorage.setItem(KANBAN_KEY, JSON.stringify(data));
+  }
+
+  function calcProgress(tasks) {
+    const total = tasks.todo.length + tasks.doing.length + tasks.done.length;
+    if (total === 0) return 0;
+    return Math.round((tasks.done.length / total) * 100);
+  }
+
+  let currentProject = null;
+  let kanbanTasks    = {};   // 현재 열린 프로젝트 태스크 (편집 중 상태)
+
+  function openKanban(projId) {
+    currentProject = projId;
+    const all = loadKanbanAll();
+    kanbanTasks = JSON.parse(JSON.stringify(all[projId]));
+
+    const p = PROJECTS[projId];
+    document.getElementById('proj-list-header').style.display = 'none';
+    document.getElementById('proj-list-view').style.display   = 'none';
+    document.getElementById('proj-kanban-header').style.display = 'flex';
+    document.getElementById('proj-kanban-view').style.display   = 'flex';
+
+    document.getElementById('kanban-proj-badge').style.background = p.color;
+    document.getElementById('kanban-proj-name').textContent        = p.name;
+    document.getElementById('kanban-proj-deadline').textContent    = p.deadline;
+
+    const pct = calcProgress(kanbanTasks);
+    const s   = document.getElementById('kanban-proj-status');
+    s.textContent      = `${pct}%`;
+    s.style.background = p.statusBg;
+    s.style.color      = p.statusColor;
+
+    renderKanban();
+  }
+
+  function closeKanban() {
+    document.getElementById('proj-list-header').style.display = 'flex';
+    document.getElementById('proj-list-view').style.display   = 'block';
+    document.getElementById('proj-kanban-header').style.display = 'none';
+    document.getElementById('proj-kanban-view').style.display   = 'none';
+    document.getElementById('kanban-done').style.display       = 'none';
+    document.getElementById('done-toggle-icon').textContent    = '▸ 펼치기';
+    renderProjectCards(); // 목록 카드 진행률 갱신
+  }
+
+  function saveCurrentKanban() {
+    const all = loadKanbanAll();
+    all[currentProject] = kanbanTasks;
+    saveKanbanAll(all);
+    // 헤더 진행률 업데이트
+    const pct = calcProgress(kanbanTasks);
+    document.getElementById('kanban-proj-status').textContent = `${pct}%`;
+  }
+
+  function renderKanban() {
+    renderCol('kanban-todo',  'todo-count',  kanbanTasks.todo,  'todo');
+    renderCol('kanban-doing', 'doing-count', kanbanTasks.doing, 'doing');
+    renderCol('kanban-done',  'done-count',  kanbanTasks.done,  'done');
+  }
+
+  function renderCol(colId, countId, tasks, colType) {
+    const col = document.getElementById(colId);
+    const cnt = document.getElementById(countId);
+    cnt.textContent = tasks.length;
+    col.innerHTML   = '';
+
+    tasks.forEach((text, i) => {
+      const card = document.createElement('div');
+      card.className = 'kanban-card' +
+        (colType === 'doing' ? ' doing-card' : colType === 'done' ? ' done-card-k' : '');
+
+      // 태스크 텍스트 (더블클릭으로 인라인 편집)
+      const textEl = document.createElement('span');
+      textEl.className    = 'kc-text';
+      textEl.textContent  = text;
+      textEl.title        = '더블클릭으로 편집';
+      textEl.addEventListener('dblclick', () => startEdit(textEl, colType, i));
+      card.appendChild(textEl);
+
+      // 이동 버튼
+      const move = document.createElement('span');
+      move.className = 'kc-move';
+      if (colType === 'todo')  { move.textContent = '시작 →';   move.addEventListener('click', () => moveTask('todo',  'doing', i)); }
+      if (colType === 'doing') { move.textContent = '완료 ✓';   move.addEventListener('click', () => moveTask('doing', 'done',  i)); }
+      if (colType === 'done')  { move.textContent = '되돌리기'; move.addEventListener('click', () => moveTask('done',  'todo',  i)); }
+      card.appendChild(move);
+
+      // 삭제 버튼
+      const del = document.createElement('span');
+      del.className   = 'kc-del';
+      del.textContent = '×';
+      del.title       = '삭제';
+      del.addEventListener('click', () => deleteTask(colType, i));
+      card.appendChild(del);
+
+      col.appendChild(card);
+    });
+  }
+
+  function startEdit(el, colType, idx) {
+    const orig  = el.textContent;
+    const input = document.createElement('input');
+    input.value     = orig;
+    input.className = 'kc-edit-input';
+    el.replaceWith(input);
+    input.focus();
+    input.select();
+
+    const commit = () => {
+      const val = input.value.trim();
+      if (val && val !== orig) {
+        kanbanTasks[colType][idx] = val;
+        saveCurrentKanban();
+      }
+      renderKanban();
+    };
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      if (e.key === 'Escape') { input.value = orig; input.blur(); }
+    });
+  }
+
+  function moveTask(from, to, idx) {
+    if (to === 'doing' && kanbanTasks.doing.length >= 2) {
+      alert('진행 중은 최대 2개까지만 가능해요.\n하나를 완료한 뒤 시작해주세요.');
+      return;
+    }
+    const [task] = kanbanTasks[from].splice(idx, 1);
+    kanbanTasks[to].unshift(task);
+    saveCurrentKanban();
+    renderKanban();
+  }
+
+  function deleteTask(colType, idx) {
+    if (!confirm(`"${kanbanTasks[colType][idx]}" 을(를) 삭제할까요?`)) return;
+    kanbanTasks[colType].splice(idx, 1);
+    saveCurrentKanban();
+    renderKanban();
+  }
+
+  function addTask(col) {
+    const text = prompt('새 태스크:');
+    if (!text || !text.trim()) return;
+    kanbanTasks[col].push(text.trim());
+    saveCurrentKanban();
+    renderKanban();
+  }
+
+  function toggleDone() {
+    const panel = document.getElementById('kanban-done');
+    const icon  = document.getElementById('done-toggle-icon');
+    const shown = panel.style.display !== 'none';
+    panel.style.display = shown ? 'none' : 'flex';
+    icon.textContent    = shown ? '▸ 펼치기' : '▾ 접기';
+  }
+
+  // 프로젝트 목록 카드의 진행률 / Next Action 을 실제 데이터로 갱신
+  function renderProjectCards() {
+    const all = loadKanbanAll();
+    Object.keys(PROJECTS).forEach(id => {
+      const tasks = all[id];
+      const pct   = calcProgress(tasks);
+      const next  = tasks.doing[0] || tasks.todo[0] || null;
+
+      const card = document.querySelector(`.proj-card[onclick="openKanban('${id}')"]`);
+      if (!card) return;
+
+      const bar = card.querySelector('.progress-bar-fill');
+      if (bar) bar.style.width = pct + '%';
+
+      const pctEl = card.querySelector('[data-pct]');
+      if (pctEl) pctEl.textContent = pct + '%';
+
+      const nextEl = card.querySelector('[data-next]');
+      if (nextEl) nextEl.textContent = next ? `→ ${next}` : '→ 모든 태스크 완료 ✓';
+    });
+  }
+
+  renderProjectCards();
+
+  /* ════════════════════════════════════════════════════════════
+     오늘 일정 — localStorage + 실시간 현재 블록 감지 + Hero 연동
+     ════════════════════════════════════════════════════════════ */
+
+  const SCHEDULE_KEY = 'dashboard_schedule';
+
+  const SCHEDULE_SEED = [
+    { start:'09:00', end:'12:00', title:'논문 Deep Work',  project:'thesis',  type:'deep-work' },
+    { start:'12:00', end:'13:30', title:'점심 · 휴식',      project:null,      type:'break'     },
+    { start:'13:30', end:'15:30', title:'Pibo 선행연구',    project:'pibo',    type:'deep-work' },
+    { start:'15:30', end:'18:00', title:'간병',             project:null,      type:'care'      },
+    { start:'19:00', end:'21:00', title:'헬스',             project:null,      type:'exercise'  },
+  ];
+
+  function loadSchedule() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(SCHEDULE_KEY) || '{}');
+      if (raw.date === todayStr()) return raw.blocks;
+    } catch(e) {}
+    const blocks = JSON.parse(JSON.stringify(SCHEDULE_SEED));
+    saveSchedule(blocks);
+    return blocks;
+  }
+
+  function saveSchedule(blocks) {
+    localStorage.setItem(SCHEDULE_KEY, JSON.stringify({ date: todayStr(), blocks }));
+  }
+
+  function timeToMin(t) {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function nowMin() {
+    const n = new Date();
+    return n.getHours() * 60 + n.getMinutes();
+  }
+
+  function renderSchedule() {
+    const container = document.getElementById('schedule-blocks');
+    if (!container) return;
+
+    const blocks = loadSchedule();
+    const cur    = nowMin();
+    container.innerHTML = '';
+    let activeBlock = null;
+
+    blocks.forEach(block => {
+      const startM = timeToMin(block.start);
+      const endM   = timeToMin(block.end);
+      const isPast = cur >= endM;
+      const isCur  = startM <= cur && cur < endM;
+      if (isCur) activeBlock = block;
+
+      const barClass = { 'deep-work':'deep-work', break:'break', care:'care', exercise:'exercise' }[block.type] || 'deep-work';
+
+      const row = document.createElement('div');
+      row.className = 'time-block' + (isPast ? ' done-row' : '') + (isCur ? ' current' : '');
+      if (isPast) row.style.opacity = '.42';
+
+      const timeEl = document.createElement('div');
+      timeEl.className   = 'time-block-time';
+      timeEl.textContent = block.start;
+
+      const bar = document.createElement('div');
+      bar.className = `time-block-bar ${barClass}`;
+
+      const info = document.createElement('div');
+      const labelStyle = block.type === 'break' ? 'color:var(--text-3)' : '';
+      const subExtra   = isCur
+        ? ` · <span style="color:var(--accent);font-weight:500;">지금 ●</span>`
+        : isPast ? ' · 완료' : '';
+      info.innerHTML = `<div class="time-block-label" style="${labelStyle}">${block.title}</div>
+        <div class="time-block-sub">~${block.end}${subExtra}</div>`;
+
+      row.append(timeEl, bar, info);
+      container.appendChild(row);
+    });
+
+    // 현재 블록 배지
+    const badge = document.getElementById('schedule-now-badge');
+    if (badge) {
+      badge.textContent   = activeBlock ? `${activeBlock.start} 진행 중` : '';
+      badge.style.display = activeBlock ? '' : 'none';
+    }
+
+    syncHeroWithSchedule(activeBlock);
+  }
+
+  function syncHeroWithSchedule(activeBlock) {
+    const isWork = activeBlock && ['deep-work', 'other'].includes(activeBlock.type);
+
+    if (isWork && activeBlock.project) {
+      // 현재 블록 프로젝트와 일치하는 미완료 MIT 찾기
+      const matchIdx = mitData.tasks.findIndex(
+        t => t.project === activeBlock.project && t.text.trim() && !t.done
+      );
+      if (matchIdx >= 0) { showHeroTask(matchIdx, activeBlock); return; }
+      showHeroBlock(activeBlock); return;
+    }
+    // 기본: MIT 순서
+    updateHero();
+  }
+
+  function showHeroTask(idx, block) {
+    const task        = mitData.tasks[idx];
+    const heroTitle   = document.getElementById('hero-title');
+    const heroEmpty   = document.getElementById('hero-empty-msg');
+    const heroContent = document.getElementById('hero-content');
+    const heroActions = heroContent.querySelector('.hero-actions');
+    const heroProjLbl = document.getElementById('hero-proj-label');
+
+    heroEmpty.style.display   = 'none';
+    heroContent.style.display = '';
+    heroActions.style.display = '';
+    heroTitle.textContent     = task.text;
+
+    const proj = task.project ? PROJ_META[task.project] : null;
+    if (proj) {
+      heroProjLbl.textContent   = `${proj.name} · ${block.start}–${block.end}`;
+      heroProjLbl.style.display = '';
+      heroProjLbl.style.color   = proj.color;
+    } else {
+      heroProjLbl.style.display = 'none';
+    }
+  }
+
+  function showHeroBlock(block) {
+    const heroTitle   = document.getElementById('hero-title');
+    const heroEmpty   = document.getElementById('hero-empty-msg');
+    const heroContent = document.getElementById('hero-content');
+    const heroProjLbl = document.getElementById('hero-proj-label');
+
+    heroEmpty.style.display   = 'none';
+    heroContent.style.display = '';
+    heroTitle.textContent     = block.title;
+
+    if (block.project && PROJ_META[block.project]) {
+      const p = PROJ_META[block.project];
+      heroProjLbl.textContent   = `${p.name} · ${block.start}–${block.end}`;
+      heroProjLbl.style.display = '';
+      heroProjLbl.style.color   = p.color;
+    } else {
+      heroProjLbl.style.display = 'none';
+    }
+  }
+
+  renderSchedule();
+  setInterval(renderSchedule, 60_000);
+
+  /* ════════════════════════════════════════════════════════════
+     MONTHLY — 목표 localStorage + 수동 이벤트
+     ════════════════════════════════════════════════════════════ */
+
+  const MONTHLY_GOALS_KEY  = 'monthly_goals';
+  const MONTHLY_EVENTS_KEY = 'monthly_events';
+
+  const PROJ_COLORS = {
+    thesis:  { border:'#C0432A', label:'#C0432A', name:'논문' },
+    pibo:    { border:'#7A6EBA', label:'#7A6EBA', name:'Pibo 연구' },
+    gf:      { border:'#4A9E7A', label:'#4A9E7A', name:'Global Facilitator' },
+    ai:      { border:'#4A6FA5', label:'#4A6FA5', name:'AI Digital Literacy' },
+    lecture: { border:'#C09840', label:'#C09840', name:'강의 준비' },
+    care:    { border:'#9C9790', label:'#9C9790', name:'간병' },
+    personal:{ border:'#9C9790', label:'#9C9790', name:'개인' },
+  };
+
+  function monthlyKey() {
+    return `${currentYear}-${String(currentMonth + 1).padStart(2,'0')}`;
+  }
+
+  function loadMonthlyGoals() {
+    try { return JSON.parse(localStorage.getItem(MONTHLY_GOALS_KEY) || '{}'); }
+    catch(e) { return {}; }
+  }
+
+  function saveMonthlyGoals(data) {
+    localStorage.setItem(MONTHLY_GOALS_KEY, JSON.stringify(data));
+  }
+
+  function loadMonthlyEvents() {
+    try { return JSON.parse(localStorage.getItem(MONTHLY_EVENTS_KEY) || '{}'); }
+    catch(e) { return {}; }
+  }
+
+  function saveMonthlyEvents(data) {
+    localStorage.setItem(MONTHLY_EVENTS_KEY, JSON.stringify(data));
+  }
+
+  // 월간 목표 패널 렌더링
+  function renderMonthlyGoals() {
+    const key   = monthlyKey();
+    const all   = loadMonthlyGoals();
+    const goals = all[key] || {};
+
+    const titleEl = document.getElementById('monthly-goal-title');
+    if (titleEl) titleEl.textContent = `${currentYear}년 ${currentMonth + 1}월 목표`;
+
+    const list = document.getElementById('monthly-goals-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    const projects = [
+      { id:'thesis',  color:'#C0432A', name:'논문' },
+      { id:'pibo',    color:'#7A6EBA', name:'Pibo 연구' },
+      { id:'gf',      color:'#4A9E7A', name:'Global Facilitator' },
+      { id:'ai',      color:'#4A6FA5', name:'AI Digital Literacy' },
+      { id:'lecture', color:'#C09840', name:'강의 준비' },
+    ];
+
+    projects.forEach(p => {
+      const card = document.createElement('div');
+      card.style.cssText = `padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius); border-left:3px solid ${p.color};`;
+
+      const label = document.createElement('div');
+      label.style.cssText = `font-size:11px; color:${p.color}; font-weight:500; margin-bottom:6px;`;
+      label.textContent   = p.name;
+      card.appendChild(label);
+
+      const ta = document.createElement('textarea');
+      ta.style.cssText = 'width:100%; border:none; outline:none; font-size:12px; font-family:var(--font-sans); color:var(--text-1); resize:none; background:transparent; line-height:1.6;';
+      ta.rows        = 3;
+      ta.placeholder = `${p.name} 이번 달 목표...`;
+      ta.value       = goals[p.id] || '';
+      ta.addEventListener('input', () => {
+        const all = loadMonthlyGoals();
+        if (!all[key]) all[key] = {};
+        all[key][p.id] = ta.value;
+        saveMonthlyGoals(all);
+      });
+      card.appendChild(ta);
+      list.appendChild(card);
+    });
+  }
+
+  // 수동 이벤트 캘린더 렌더링
+  function renderManualEvents() {
+    document.querySelectorAll('.manual-event').forEach(e => e.remove());
+    const key    = monthlyKey();
+    const events = (loadMonthlyEvents()[key] || []);
+
+    events.forEach(ev => {
+      const d = new Date(ev.date + 'T00:00:00');
+      if (d.getMonth() !== currentMonth || d.getFullYear() !== currentYear) return;
+      const day  = d.getDate();
+      const cell = document.querySelector(`[data-day="${day}"]`);
+      if (!cell) return;
+
+      const dot = document.createElement('div');
+      dot.className = 'cal-event manual-event';
+      dot.dataset.evId = ev.id;
+      const c = PROJ_COLORS[ev.project] || { border:'#9C9790', label:'#9C9790' };
+      dot.style.cssText = `background:${c.border}18; color:${c.label}; border-left:2px solid ${c.border}; cursor:pointer;`;
+      dot.title = ev.title;
+      dot.textContent = ev.title.substring(0, 14);
+      dot.addEventListener('click', e => { e.stopPropagation(); openEditEvent(ev.id); });
+      cell.appendChild(dot);
+    });
+  }
+
+  // 날짜 셀 클릭 이벤트 등록 (buildCalendarGrid 후 호출)
+  function attachDayClickHandlers() {
+    document.querySelectorAll('[data-day]').forEach(cell => {
+      cell.style.cursor = 'pointer';
+      cell.addEventListener('click', () => {
+        const day   = cell.dataset.day;
+        const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        openAddEvent(dateStr);
+      });
+    });
+  }
+
+  // 이벤트 모달 — 추가
+  let editingEventId = null;
+  function openAddEvent(dateStr) {
+    editingEventId = null;
+    document.getElementById('event-modal-title').textContent = '일정 추가';
+    document.getElementById('ev-title').value   = '';
+    document.getElementById('ev-date').value    = dateStr;
+    document.getElementById('ev-project').value = '';
+    document.getElementById('ev-memo').value    = '';
+    document.getElementById('ev-delete-btn').style.display = 'none';
+    document.getElementById('event-modal').style.display   = 'flex';
+    setTimeout(() => document.getElementById('ev-title').focus(), 50);
+  }
+
+  // 이벤트 모달 — 편집
+  function openEditEvent(evId) {
+    const key    = monthlyKey();
+    const all    = loadMonthlyEvents();
+    const events = all[key] || [];
+    const ev     = events.find(e => e.id === evId);
+    if (!ev) return;
+    editingEventId = evId;
+    document.getElementById('event-modal-title').textContent = '일정 편집';
+    document.getElementById('ev-title').value   = ev.title;
+    document.getElementById('ev-date').value    = ev.date;
+    document.getElementById('ev-project').value = ev.project || '';
+    document.getElementById('ev-memo').value    = ev.memo || '';
+    document.getElementById('ev-delete-btn').style.display = '';
+    document.getElementById('event-modal').style.display   = 'flex';
+  }
+
+  function closeEventModal(e) {
+    if (e && e.target !== document.getElementById('event-modal')) return;
+    document.getElementById('event-modal').style.display = 'none';
+  }
+
+  function saveEvent() {
+    const title = document.getElementById('ev-title').value.trim();
+    if (!title) { document.getElementById('ev-title').focus(); return; }
+    const key    = monthlyKey();
+    const all    = loadMonthlyEvents();
+    if (!all[key]) all[key] = [];
+
+    if (editingEventId) {
+      const idx = all[key].findIndex(e => e.id === editingEventId);
+      if (idx >= 0) all[key][idx] = { ...all[key][idx], title, date: document.getElementById('ev-date').value, project: document.getElementById('ev-project').value, memo: document.getElementById('ev-memo').value };
+    } else {
+      all[key].push({ id: Date.now().toString(36), title, date: document.getElementById('ev-date').value, project: document.getElementById('ev-project').value, memo: document.getElementById('ev-memo').value });
+    }
+    saveMonthlyEvents(all);
+    document.getElementById('event-modal').style.display = 'none';
+    renderManualEvents();
+  }
+
+  function deleteEvent() {
+    if (!editingEventId || !confirm('이 일정을 삭제할까요?')) return;
+    const key  = monthlyKey();
+    const all  = loadMonthlyEvents();
+    all[key]   = (all[key] || []).filter(e => e.id !== editingEventId);
+    saveMonthlyEvents(all);
+    document.getElementById('event-modal').style.display = 'none';
+    renderManualEvents();
+  }
+
+  // Enter로 이벤트 저장
+  document.getElementById('ev-title').addEventListener('keydown', e => { if (e.key === 'Enter') saveEvent(); });
+  document.getElementById('ev-memo').addEventListener('keydown',  e => { if (e.key === 'Enter') saveEvent(); });
+
+  /* ════════════════════════════════════════════════════════════
+     WEEKLY — 주차 계산 + 목표/메모 localStorage
+     ════════════════════════════════════════════════════════════ */
+
+  let weekOffset = 0; // 0 = 현재 주
+
+  function getWeekStart(offsetWeeks) {
+    const d   = new Date();
+    const dow = d.getDay() === 0 ? 6 : d.getDay() - 1; // 월=0 기준
+    d.setDate(d.getDate() - dow + offsetWeeks * 7);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  function getWeekKey(monday) {
+    // YYYY-WNN format
+    const jan1 = new Date(monday.getFullYear(), 0, 1);
+    const weekNum = Math.ceil(((monday - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+    return `${monday.getFullYear()}-W${String(weekNum).padStart(2,'0')}`;
+  }
+
+  function loadWeeklyData() {
+    try { return JSON.parse(localStorage.getItem('weekly_data') || '{}'); } catch(e) { return {}; }
+  }
+
+  function saveWeeklyData(data) {
+    localStorage.setItem('weekly_data', JSON.stringify(data));
+  }
+
+  function renderWeeklyScreen() {
+    const monday = getWeekStart(weekOffset);
+    const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
+    const key    = getWeekKey(monday);
+
+    // 헤더
+    const weekNum = key.split('-W')[1];
+    document.getElementById('weekly-title').textContent = `${weekNum}주차`;
+    const fmt = d => `${d.getMonth()+1}월 ${d.getDate()}일`;
+    document.getElementById('weekly-range').textContent = `${fmt(monday)} — ${fmt(sunday)}`;
+
+    // 이번 달 목표 컨텍스트
+    const mKey    = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}`;
+    const mGoals  = (loadMonthlyGoals()[mKey] || {});
+    const mTexts  = Object.values(mGoals).filter(Boolean).map(t => t.split('\n')[0].trim()).filter(Boolean);
+    document.getElementById('weekly-monthly-context-body').textContent =
+      mTexts.length ? mTexts.join(' · ') : '월간 목표 화면에서 목표를 입력하면 여기 표시됩니다.';
+
+    // 주간 목표 및 메모 로드
+    const data = (loadWeeklyData()[key] || {});
+    document.getElementById('wg-1').value    = data.g1 || '';
+    document.getElementById('wg-2').value    = data.g2 || '';
+    document.getElementById('wg-3').value    = data.g3 || '';
+    document.getElementById('weekly-memo').value = data.memo || '';
+
+    // GCal 이벤트
+    if (gcalConnected) {
+      const gcalSec = document.getElementById('weekly-gcal-section');
+      if (gcalSec) gcalSec.style.display = '';
+    }
+
+    document.getElementById('weekly-save-msg').style.display = 'none';
+  }
+
+  function changeWeek(delta) {
+    weekOffset += delta;
+    renderWeeklyScreen();
+  }
+
+  function saveWeeklyGoals() {
+    const monday = getWeekStart(weekOffset);
+    const key    = getWeekKey(monday);
+    const all    = loadWeeklyData();
+    all[key] = {
+      g1:   document.getElementById('wg-1').value,
+      g2:   document.getElementById('wg-2').value,
+      g3:   document.getElementById('wg-3').value,
+      memo: document.getElementById('weekly-memo').value,
+    };
+    saveWeeklyData(all);
+    const msg = document.getElementById('weekly-save-msg');
+    msg.style.display = '';
+    setTimeout(() => msg.style.display = 'none', 2000);
+  }
+
+  /* ════════════════════════════════════════════════════════════
+     DAILY — 오늘 날짜 + MIT/일정 공유 + 노트/회고 localStorage
+     ════════════════════════════════════════════════════════════ */
+
+  const DAY_KO = ['일','월','화','수','목','금','토'];
+
+  function todayKey() {
+    return today.toISOString().slice(0, 10);
+  }
+
+  function loadDailyNotes() {
+    try { return JSON.parse(localStorage.getItem('daily_notes') || '{}'); } catch(e) { return {}; }
+  }
+
+  function loadDailyReview() {
+    try { return JSON.parse(localStorage.getItem('daily_review') || '{}'); } catch(e) { return {}; }
+  }
+
+  function renderDailyScreen() {
+    // 날짜 헤더
+    document.getElementById('daily-date-title').textContent =
+      `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+    document.getElementById('daily-day-label').textContent =
+      `${DAY_KO[today.getDay()]}요일`;
+
+    // 이번 주 목표 컨텍스트
+    const monday = getWeekStart(0);
+    const wKey   = getWeekKey(monday);
+    const wData  = (loadWeeklyData()[wKey] || {});
+    const wTexts = [wData.g1, wData.g2, wData.g3].filter(Boolean).map(t => t.split('\n')[0].trim()).filter(Boolean);
+    document.getElementById('daily-weekly-context-body').textContent =
+      wTexts.length ? wTexts.join(' · ') : '주간 목표 화면에서 목표를 입력하면 여기 표시됩니다.';
+
+    // MIT (dashboard_mit 공유)
+    renderDailyMIT();
+
+    // 일정 (dashboard_schedule 공유)
+    renderDailySchedule();
+
+    // 노트 / 회고 로드
+    const dk = todayKey();
+    document.getElementById('daily-notes').value  = (loadDailyNotes()[dk] || '');
+    document.getElementById('daily-review').value = (loadDailyReview()[dk] || '');
+
+    // 인박스 미분류 항목 표시
+    renderDailyInbox();
+  }
+
+  const PROJ_OPTS = [
+    { value:'',        label:'프로젝트 없음' },
+    { value:'thesis',  label:'논문' },
+    { value:'pibo',    label:'Pibo 연구' },
+    { value:'gf',      label:'Global Facilitator' },
+    { value:'ai',      label:'AI Digital Literacy' },
+    { value:'lecture', label:'강의 준비' },
+  ];
+
+  function renderDailyMIT() {
+    const container = document.getElementById('daily-mit-list');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const activeStyle = 'display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--surface); border:1.5px solid var(--accent); border-radius:var(--radius);';
+    const inactiveStyle = 'display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);';
+    const numActiveStyle = 'width:22px; height:22px; border-radius:50%; background:var(--accent); color:white; font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0;';
+    const numInactiveStyle = 'width:22px; height:22px; border-radius:50%; background:var(--surface-2); color:var(--text-3); font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0;';
+
+    mitData.tasks.forEach((task, i) => {
+      const row = document.createElement('div');
+      row.style.cssText = i === 0 ? activeStyle : inactiveStyle;
+
+      const num = document.createElement('div');
+      num.style.cssText = i === 0 ? numActiveStyle : numInactiveStyle;
+      num.textContent = String(i + 1);
+
+      const input = document.createElement('input');
+      input.style.cssText = 'flex:1; border:none; outline:none; font-size:13px; font-family:var(--font-sans); color:var(--text-1); background:transparent;';
+      input.placeholder = `${i+1}번째 MIT 입력...`;
+      input.value = task.text;
+      if (task.done) { input.style.textDecoration = 'line-through'; input.style.opacity = '.5'; }
+      input.addEventListener('input', () => {
+        mitData.tasks[i].text = input.value;
+        localStorage.setItem('dashboard_mit', JSON.stringify(mitData));
+      });
+
+      const sel = document.createElement('select');
+      sel.style.cssText = 'border:none; outline:none; font-size:11px; color:var(--text-3); background:transparent; font-family:var(--font-sans);';
+      PROJ_OPTS.forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt.value; o.textContent = opt.label;
+        if (task.project === opt.value) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', () => {
+        mitData.tasks[i].project = sel.value || null;
+        localStorage.setItem('dashboard_mit', JSON.stringify(mitData));
+      });
+
+      row.appendChild(num);
+      row.appendChild(input);
+      row.appendChild(sel);
+      container.appendChild(row);
+    });
+  }
+
+  let _editBlockIdx = -1;
+
+  function openBlockModal(idx) {
+    const blocks = loadSchedule();
+    _editBlockIdx = (idx !== undefined) ? idx : -1;
+
+    const isEdit = _editBlockIdx >= 0;
+    const b = isEdit ? blocks[_editBlockIdx] : null;
+
+    document.getElementById('block-modal-title').textContent = isEdit ? '블록 편집' : '블록 추가';
+    document.getElementById('blk-title').value   = b ? b.title   : '';
+    document.getElementById('blk-start').value   = b ? b.start   : '09:00';
+    document.getElementById('blk-end').value     = b ? b.end     : '10:00';
+    document.getElementById('blk-type').value    = b ? b.type    : 'deep-work';
+    document.getElementById('blk-project').value = b ? (b.project || '') : '';
+    document.getElementById('blk-delete-btn').style.display = isEdit ? '' : 'none';
+
+    const modal = document.getElementById('block-modal');
+    modal.style.display = 'flex';
+    setTimeout(() => document.getElementById('blk-title').focus(), 50);
+  }
+
+  function closeBlockModal(e) {
+    if (e && e.target !== document.getElementById('block-modal')) return;
+    document.getElementById('block-modal').style.display = 'none';
+  }
+
+  function saveBlock() {
+    const title   = document.getElementById('blk-title').value.trim();
+    const start   = document.getElementById('blk-start').value;
+    const end     = document.getElementById('blk-end').value;
+    const type    = document.getElementById('blk-type').value;
+    const project = document.getElementById('blk-project').value;
+
+    if (!title || !start || !end) { alert('제목, 시작 시간, 종료 시간을 입력해 주세요.'); return; }
+
+    const blocks = loadSchedule();
+    const block  = { start, end, title, type, project: project || null };
+
+    if (_editBlockIdx >= 0) {
+      blocks[_editBlockIdx] = block;
+    } else {
+      blocks.push(block);
+      blocks.sort((a, b) => a.start.localeCompare(b.start));
+    }
+
+    saveSchedule(blocks);
+    document.getElementById('block-modal').style.display = 'none';
+    renderDailySchedule();
+    renderSchedule(); // Home 화면에도 반영
+  }
+
+  function deleteBlock() {
+    if (_editBlockIdx < 0) return;
+    const blocks = loadSchedule();
+    blocks.splice(_editBlockIdx, 1);
+    saveSchedule(blocks);
+    document.getElementById('block-modal').style.display = 'none';
+    renderDailySchedule();
+    renderSchedule();
+  }
+
+  function renderDailySchedule() {
+    const container = document.getElementById('daily-schedule-list');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const TYPE_COLOR  = { 'deep-work': 'var(--accent)', 'break': '#9C9790', 'care': '#C0432A', 'exercise': '#4A9E7A', 'other': 'var(--accent)' };
+    const TYPE_LABEL  = { 'deep-work': 'Deep Work', 'break': '휴식', 'care': '간병', 'exercise': '운동', 'other': '' };
+
+    const blocks = loadSchedule();
+
+    if (blocks.length === 0) {
+      container.innerHTML = '<div style="font-size:12px; color:var(--text-3); padding:8px 0;">등록된 블록이 없어요. + 블록 추가로 시작해보세요.</div>';
+      return;
+    }
+
+    blocks.forEach((block, idx) => {
+      const color = (block.project && PROJ_META[block.project]?.color) || TYPE_COLOR[block.type] || 'var(--accent)';
+
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; gap:10px; align-items:stretch; position:relative; cursor:pointer;';
+      row.title = '클릭해서 편집';
+
+      row.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:flex-end; justify-content:center; width:44px; flex-shrink:0; font-size:11px; color:var(--text-3); line-height:1.8;">${block.start}<br>${block.end}</div>
+        <div style="width:4px; border-radius:2px; background:${color}; flex-shrink:0; min-height:44px;"></div>
+        <div style="flex:1; padding:9px 12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);">
+          <div style="font-size:13px; color:var(--text-1); font-weight:500;">${block.title}</div>
+          <div style="font-size:11px; color:var(--text-3); margin-top:2px;">${TYPE_LABEL[block.type] || ''}</div>
+        </div>
+        <button onclick="event.stopPropagation(); openBlockModal(${idx})" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:var(--surface-2); border:1px solid var(--border); border-radius:4px; padding:3px 7px; font-size:11px; color:var(--text-3); cursor:pointer; opacity:0; transition:opacity .15s;">✏️</button>`;
+
+      row.addEventListener('mouseenter', () => row.querySelector('button').style.opacity = '1');
+      row.addEventListener('mouseleave', () => row.querySelector('button').style.opacity = '0');
+      row.addEventListener('click', () => openBlockModal(idx));
+
+      container.appendChild(row);
+    });
+  }
+
+  function renderDailyInbox() {
+    const inbox   = JSON.parse(localStorage.getItem('dashboard_inbox') || '[]');
+    const listEl  = document.getElementById('daily-inbox-list');
+    if (!listEl) return;
+    if (inbox.length === 0) {
+      listEl.innerHTML = '<span style="font-size:12px; color:var(--text-3);">인박스(⌘K)에서 캡처한 항목이 여기에 표시됩니다.</span>';
+      return;
+    }
+    listEl.innerHTML = '';
+    inbox.slice(0, 5).forEach(item => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:flex-start; gap:8px; padding:8px 10px; background:var(--bg); border-radius:var(--radius-sm); border:1px solid var(--border);';
+      row.innerHTML = `<span style="font-size:12px; color:var(--text-2); flex:1;">${item.text}</span>`;
+      listEl.appendChild(row);
+    });
+    if (inbox.length > 5) {
+      const more = document.createElement('span');
+      more.style.cssText = 'font-size:11px; color:var(--text-3); padding:4px 0;';
+      more.textContent = `+${inbox.length - 5}개 더 있어요. 인박스 화면에서 확인`;
+      listEl.appendChild(more);
+    }
+  }
+
+  // 노트/회고 자동 저장
+  document.addEventListener('input', e => {
+    const dk = todayKey();
+    if (e.target.id === 'daily-notes') {
+      const all = loadDailyNotes(); all[dk] = e.target.value;
+      localStorage.setItem('daily_notes', JSON.stringify(all));
+    }
+    if (e.target.id === 'daily-review') {
+      const all = loadDailyReview(); all[dk] = e.target.value;
+      localStorage.setItem('daily_review', JSON.stringify(all));
+    }
+  });
+
+  function showScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('visible'));
+    document.querySelectorAll('.screen-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('visible');
+    const tab = document.querySelector(`[onclick="showScreen('${name}')"]`);
+    if (tab) tab.classList.add('active');
+    if (name === 'capture') renderInbox();
+    if (name === 'weekly')  renderWeeklyScreen();
+    if (name === 'daily')   renderDailyScreen();
+    if (name === 'home') {
+      mitData = loadMITData();
+      renderMIT();
+      renderSchedule();
+    }
+  }
+
+  function navigateTo(screenId) {
+    const name = screenId.replace('screen-', '');
+    showScreen(name);
+  }
+
+  document.addEventListener('keydown', e => {
+    // ⌘K — Quick Capture 열기
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'k') {
+      e.preventDefault();
+      openCapture();
+    }
+    // Esc — overlay 닫기 or 홈으로
+    if (e.key === 'Escape' && e.target.id !== 'qc-input') {
+      const bModal = document.getElementById('block-modal');
+      if (bModal && bModal.style.display !== 'none') { bModal.style.display = 'none'; return; }
+      const overlay = document.getElementById('qc-overlay');
+      if (overlay && overlay.style.display !== 'none') {
+        overlay.style.display = 'none';
+      } else {
+        showScreen('home');
+      }
+    }
+    // ⌘↵ — 현재 MIT 완료
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      completeCurrent();
+    }
+  });
+
+  /* ── 월 이동 + 달력 동적 생성 ─────────────────────────── */
+  const today = new Date();
+  let currentYear  = today.getFullYear();
+  let currentMonth = today.getMonth(); // 0-indexed
+
+  const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+
+  function changeMonth(delta) {
+    currentMonth += delta;
+    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    if (currentMonth < 0)  { currentMonth = 11; currentYear--; }
+    buildCalendarGrid();
+    renderMonthlyGoals();
+    renderManualEvents();
+    if (gcalConnected) fetchCalendarEvents();
+  }
+
+  function buildCalendarGrid() {
+    const grid = document.getElementById('cal-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    document.getElementById('month-title').textContent = `${currentYear}년 ${MONTH_NAMES[currentMonth]}`;
+
+    const firstDay  = new Date(currentYear, currentMonth, 1);
+    const lastDay   = new Date(currentYear, currentMonth + 1, 0);
+    const startDOW  = firstDay.getDay();
+    const totalDays = lastDay.getDate();
+
+    for (let i = 0; i < startDOW; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'cal-cell empty';
+      grid.appendChild(empty);
+    }
+
+    for (let d = 1; d <= totalDays; d++) {
+      const isToday = (
+        d === today.getDate() &&
+        currentMonth === today.getMonth() &&
+        currentYear  === today.getFullYear()
+      );
+      const cell = document.createElement('div');
+      cell.className = isToday ? 'cal-cell today-cell' : 'cal-cell';
+      cell.setAttribute('data-day', d);
+      cell.innerHTML = `<div class="cal-num${isToday ? ' today-num' : ''}">${d}</div>`;
+      grid.appendChild(cell);
+    }
+
+    const filled    = startDOW + totalDays;
+    const remainder = (7 - (filled % 7)) % 7;
+    for (let i = 0; i < remainder; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'cal-cell empty';
+      grid.appendChild(empty);
+    }
+
+    attachDayClickHandlers();
+    renderManualEvents();
+  }
+
+  // 페이지 로드 시 달력 + 월간 목표 그리기
+  buildCalendarGrid();
+  renderMonthlyGoals();
+
+  /* ══ Google Calendar API ══════════════════════════════════
+   *
+   * ❗ 사용 전 설정 필요:
+   *   1. https://console.cloud.google.com 에서 프로젝트 생성
+   *   2. "Google Calendar API" 활성화
+   *   3. 사용자 인증 정보 → OAuth 2.0 클라이언트 ID 생성
+   *      (유형: 웹 애플리케이션, 허용된 출처: http://localhost:8000)
+   *   4. 아래 GC_CLIENT_ID 에 발급받은 클라이언트 ID 붙여넣기
+   *   5. 터미널에서: python3 -m http.server 8000
+   *   6. 브라우저에서: http://localhost:8000/design-mockup.html
+   *
+   ═══════════════════════════════════════════════════════════ */
+  /* ══ Google Calendar API (gapi 없이 GIS + fetch) ══════════
+   * CLIENT_ID는 스크립트 최상단에서 선언됨 (TDZ 방지).
+   ═══════════════════════════════════════════════════════════ */
+
+  /* 세션 토큰 캐시 — 탭을 닫기 전까지 재인증 불필요 */
+  function restoreSessionToken() {
+    try {
+      const cached = JSON.parse(sessionStorage.getItem('gcal_token') || 'null');
+      if (cached && cached.expires_at > Date.now() + 60_000) {
+        accessToken   = cached.access_token;
+        gcalConnected = true;
+        updateGCalUI(true);
+        fetchCalendarEvents();
+        return true;
+      }
+    } catch(e) {}
+    return false;
+  }
+
+  function cacheSessionToken(token, expiresIn) {
+    sessionStorage.setItem('gcal_token', JSON.stringify({
+      access_token: token,
+      expires_at:   Date.now() + expiresIn * 1000,
+    }));
+  }
+
+  function clearSessionToken() {
+    sessionStorage.removeItem('gcal_token');
+  }
+
+  /* GIS 라이브러리 로드 완료 콜백 */
+  function gisLoaded() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GC_CLIENT_ID,
+      scope:     GC_SCOPES,
+      callback:  async (resp) => {
+        if (resp.error) {
+          handleGCalError(resp.error, resp.error_description);
+          return;
+        }
+        accessToken   = resp.access_token;
+        gcalConnected = true;
+        cacheSessionToken(resp.access_token, resp.expires_in || 3600);
+        updateGCalUI(true);
+        await fetchCalendarEvents();
+      },
+    });
+    gisInited = true;
+    // 세션 토큰 복원 시도
+    restoreSessionToken();
+  }
+
+  function handleGCalError(error, desc) {
+    console.warn('GCal 오류:', error, desc);
+    clearSessionToken();
+    if (error === 'access_denied' || error === 'invalid_client') {
+      showGCalHelpModal();
+    } else if (error === 'popup_closed_by_user') {
+      // 사용자가 팝업 닫음 — 조용히 무시
+    } else {
+      alert(`Google Calendar 연결 오류: ${desc || error}`);
+    }
+  }
+
+  /* 연결 버튼 클릭 */
+  function connectGoogleCalendar() {
+    if (location.protocol === 'file:') {
+      alert('⚠️ Google Calendar는 로컬 서버에서만 작동합니다.\n\n터미널에서 실행:\n  cd "업무 대시보드"\n  python3 -m http.server 8000\n\n그 후 http://localhost:8000/dashboard.html 접속');
+      return;
+    }
+    if (!gisInited) {
+      alert('Google 라이브러리 로딩 중입니다. 1~2초 후 다시 눌러주세요.');
+      return;
+    }
+    // 팝업 차단 안내
+    const note = document.createElement('div');
+    note.id = 'popup-hint';
+    note.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#1C1814;color:white;padding:12px 16px;border-radius:8px;font-size:12px;z-index:9999;';
+    note.textContent = '⬆️ 주소창 팝업 차단 알림이 뜨면 허용을 눌러주세요';
+    document.body.appendChild(note);
+    setTimeout(() => note.remove(), 6000);
+
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  }
+
+  /* 연결 해제 */
+  function disconnectGoogleCalendar() {
+    if (accessToken) {
+      google.accounts.oauth2.revoke(accessToken, () => {});
+    }
+    accessToken   = null;
+    gcalConnected = false;
+    clearSessionToken();
+    updateGCalUI(false);
+    clearCalendarEvents();
+  }
+
+  /* UI 상태 업데이트 */
+  function updateGCalUI(connected) {
+    document.getElementById('gcal-disconnected').style.display = connected ? 'none' : 'flex';
+    document.getElementById('gcal-connected').style.display    = connected ? 'flex' : 'none';
+  }
+
+  function showGCalLoadingMsg() { /* 미사용 — connectGoogleCalendar 안에서 직접 처리 */ }
+
+  /* access_denied 도움말 모달 */
+  function showGCalHelpModal() {
+    document.getElementById('gcal-help-modal').style.display = 'flex';
+  }
+  function closeGCalHelpModal() {
+    document.getElementById('gcal-help-modal').style.display = 'none';
+  }
+
+  /* ── 이벤트 가져오기 — 활성화된 모든 캘린더 병렬 조회 ─── */
+  async function fetchCalendarEvents() {
+    if (!accessToken) return;
+
+    const headers = { Authorization: `Bearer ${accessToken}` };
+
+    // 1단계: 캘린더 목록 조회
+    let calendars = [];
+    try {
+      const listResp = await fetch(
+        'https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader',
+        { headers }
+      );
+      if (listResp.status === 401) {
+        accessToken = null;
+        tokenClient.requestAccessToken({ prompt: '' });
+        return;
+      }
+      const listData = await listResp.json();
+      // selected:true인 캘린더만 (구글 캘린더에서 체크된 것)
+      calendars = (listData.items || []).filter(c => c.selected !== false);
+    } catch (err) {
+      console.error('캘린더 목록 로드 실패:', err);
+      return;
+    }
+
+    // 2단계: 각 캘린더 이벤트 병렬 조회
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay  = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+    const params = new URLSearchParams({
+      timeMin:      firstDay.toISOString(),
+      timeMax:      lastDay.toISOString(),
+      showDeleted:  'false',
+      singleEvents: 'true',
+      maxResults:   '250',
+      orderBy:      'startTime',
+    });
+
+    try {
+      const results = await Promise.all(
+        calendars.map(cal =>
+          fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal.id)}/events?${params}`,
+            { headers }
+          )
+          .then(r => r.ok ? r.json() : { items: [] })
+          .then(data => (data.items || []).map(ev => ({
+            ...ev,
+            _calColor: cal.backgroundColor || '#4285F4',
+          })))
+          .catch(() => [])
+        )
+      );
+
+      const allEvents = results.flat().sort((a, b) => {
+        const aStart = a.start.date || a.start.dateTime || '';
+        const bStart = b.start.date || b.start.dateTime || '';
+        return aStart.localeCompare(bStart);
+      });
+
+      renderCalendarEvents(allEvents);
+    } catch (err) {
+      console.error('캘린더 이벤트 로드 실패:', err);
+    }
+  }
+
+  /* ── 이벤트 캘린더에 렌더링 ─────────────────────────────── */
+  function renderCalendarEvents(events) {
+    document.querySelectorAll('.gcal-event').forEach(el => el.remove());
+
+    events.forEach(ev => {
+      const start = ev.start.date || ev.start.dateTime;
+      const date  = new Date(start);
+      const day   = date.getDate();
+
+      const cell = document.querySelector(`[data-day="${day}"]`);
+      if (!cell) return;
+
+      const color = ev.colorId ? gcalColorMap[ev.colorId] : (ev._calColor || '#4285F4');
+      const dot   = document.createElement('div');
+      dot.className       = 'cal-event gcal-event';
+      dot.title           = ev.summary || '(제목 없음)';
+      dot.style.background  = color + '22';
+      dot.style.color       = color;
+      dot.style.borderLeft  = `2px solid ${color}`;
+      dot.textContent     = (ev.summary || '일정').substring(0, 14);
+      cell.appendChild(dot);
+    });
+
+    renderWeeklyGCalEvents(events);
+  }
+
+  function renderWeeklyGCalEvents(events) {
+    const container = document.getElementById('weekly-gcal-events');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const now       = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+
+    const thisWeek = events.filter(ev => {
+      const d = new Date(ev.start.date || ev.start.dateTime);
+      return d >= weekStart && d <= weekEnd;
+    });
+
+    if (thisWeek.length === 0) { container.style.display = 'none'; return; }
+    container.style.display = 'flex';
+
+    thisWeek.forEach(ev => {
+      const d     = new Date(ev.start.date || ev.start.dateTime);
+      const label = `${d.getMonth()+1}/${d.getDate()} ${ev.summary || '일정'}`;
+      const item  = document.createElement('div');
+      item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text-2);';
+      item.innerHTML = `<div style="width:7px;height:7px;border-radius:50%;background:#4285F4;flex-shrink:0"></div><span>${label}</span><span style="margin-left:auto;font-size:10px;color:var(--text-3);">Google</span>`;
+      container.appendChild(item);
+    });
+  }
+
+  function clearCalendarEvents() {
+    document.querySelectorAll('.gcal-event').forEach(el => el.remove());
+    const c = document.getElementById('weekly-gcal-events');
+    if (c) { c.innerHTML = ''; c.style.display = 'none'; }
+  }
+
+  const gcalColorMap = {
+    '1':'#AC725E','2':'#D06B64','3':'#F83A22','4':'#FA573C',
+    '5':'#FF7537','6':'#FFAD46','7':'#42D692','8':'#16A765',
+    '9':'#7BD148','10':'#B3DC6C','11':'#FBE983','12':'#FAD165',
+    '13':'#92E1C0','14':'#9FE1E7','15':'#9FC6E7','16':'#4986E7',
+    '17':'#9A9CFF','18':'#B99AFF','19':'#C2C2C2','20':'#CABDBF',
+    '21':'#CCA6AC','22':'#F691B2','23':'#CD74E6','24':'#A47AE2',
+  };
+
+  // ── PWA 서비스 워커 등록 ──────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+</script>
+
+<!-- GIS 라이브러리만 로드 (gapi 스크립트 제거) -->
+<script src="https://accounts.google.com/gsi/client" onload="gisLoaded()" onerror="console.warn('GIS 스크립트 로드 실패 — 네트워크 확인')" async defer></script>
+
+<!-- ══ Quick Capture 오버레이 (전역, 어느 화면에서나) ══════ -->
+<div id="qc-overlay" style="display:none; position:fixed; inset:0; background:rgba(28,24,20,.45); backdrop-filter:blur(4px); z-index:2000; align-items:flex-start; justify-content:center; padding-top:100px;" onclick="closeCapture(event)">
+  <div style="width:540px; background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); overflow:hidden;" onclick="event.stopPropagation()">
+
+    <!-- 입력 영역 -->
+    <div style="display:flex; align-items:center; gap:10px; padding:16px 20px; border-bottom:1px solid var(--border);">
+      <span style="font-size:16px; color:var(--accent);">⚡</span>
+      <input id="qc-input"
+        style="flex:1; border:none; outline:none; font-size:16px; font-family:var(--font-sans); color:var(--text-1); background:transparent;"
+        placeholder="지금 머릿속에 있는 것을 입력하세요...">
+      <kbd style="background:var(--surface-2); border:1px solid var(--border); padding:2px 7px; border-radius:4px; font-size:11px; color:var(--text-3); flex-shrink:0;">Enter 저장</kbd>
+    </div>
+
+    <!-- 힌트 -->
+    <div style="font-size:11px; color:var(--text-3); padding:8px 20px 2px;">
+      프로젝트 분류는 나중에 — 지금은 생각을 잃지 않는 것만
+    </div>
+
+    <!-- 최근 캡처 -->
+    <div id="qc-recent" style="padding:8px 12px 12px; display:flex; flex-direction:column; gap:2px; max-height:200px; overflow-y:auto;"></div>
+
+    <!-- 저장 확인 토스트 (숨김) -->
+    <div id="qc-saved-msg" style="display:none; padding:10px 20px; background:var(--accent-bg); color:var(--accent); font-size:12px; font-weight:500; text-align:center;">
+      저장됐어요 ✓
+    </div>
+  </div>
+</div>
+</body>
+</html>
