@@ -1158,6 +1158,12 @@
             <div class="mit-section" id="mit-list"></div>
           </div>
 
+          <!-- ② D-day 임박 태스크 -->
+          <div id="dday-section" style="display:none;">
+            <div class="section-label" style="margin-bottom:8px;">⚡ D-day 임박</div>
+            <div id="dday-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+          </div>
+
           <!-- ③ 오늘 챙길 것 -->
           <div>
             <div class="section-label" style="margin-bottom:10px;">오늘 챙길 것</div>
@@ -2089,7 +2095,7 @@
       if (task.project && !task.done) {
         const all   = loadKanbanAll();
         const ptask = all[task.project] || { todo: [], doing: [] };
-        const suggestions = [...(ptask.doing), ...(ptask.todo)].slice(0, 5);
+        const suggestions = [...(ptask.doing), ...(ptask.todo)].slice(0, 5).map(normalizeTask);
 
         if (suggestions.length > 0) {
           const sugg = document.createElement('div');
@@ -2104,10 +2110,10 @@
           suggestions.forEach(t => {
             const chip = document.createElement('button');
             chip.className   = 'mit-suggest-chip';
-            chip.textContent = t;
+            chip.textContent = t.text;
             chip.addEventListener('click', e => {
               e.preventDefault();
-              mitData.tasks[i].text = t;
+              mitData.tasks[i].text = t.text;
               saveMITData(mitData);
               renderMIT();
               updateHero();
@@ -2458,12 +2464,51 @@
 
   // KANBAN_KEY, PROJECTS, KANBAN_SEED → 스크립트 최상단으로 이동됨
 
+  // 태스크 정규화: 문자열 → {text, deadline} 객체
+  function normalizeTask(t) {
+    return typeof t === 'string' ? { text: t, deadline: null } : t;
+  }
+
+  // D-day 숫자 계산 (오늘=0, 내일=1, 어제=-1)
+  function calcDday(deadline) {
+    if (!deadline) return null;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const d = new Date(deadline + 'T00:00:00'); d.setHours(0,0,0,0);
+    return Math.round((d - today) / 86400000);
+  }
+
+  // D-day 뱃지 HTML
+  function ddayBadge(deadline) {
+    const d = calcDday(deadline);
+    if (d === null) return '';
+    const label = d < 0 ? `D+${Math.abs(d)}` : d === 0 ? 'D-day' : `D-${d}`;
+    const color  = d <= 0 ? '#C0432A' : d <= 3 ? '#C09840' : '#4A9E7A';
+    return `<span style="font-size:10px;font-weight:700;color:${color};background:${color}18;border-radius:3px;padding:1px 6px;flex-shrink:0;">${label}</span>`;
+  }
+
+  // 열을 마감일 순으로 정렬 (없는 것은 뒤로)
+  function sortKanbanCol(col) {
+    kanbanTasks[col].sort((a, b) => {
+      const da = normalizeTask(a).deadline;
+      const db = normalizeTask(b).deadline;
+      if (da && db) return da.localeCompare(db);
+      if (da) return -1;
+      if (db) return 1;
+      return 0;
+    });
+  }
+
   function loadKanbanAll() {
     try {
       const stored = JSON.parse(localStorage.getItem(KANBAN_KEY) || '{}');
-      // 빠진 프로젝트는 시드로 채움
       Object.keys(KANBAN_SEED).forEach(id => {
         if (!stored[id]) stored[id] = JSON.parse(JSON.stringify(KANBAN_SEED[id]));
+      });
+      // 문자열 태스크를 객체로 마이그레이션
+      Object.values(stored).forEach(proj => {
+        ['todo','doing','done'].forEach(col => {
+          if (proj[col]) proj[col] = proj[col].map(normalizeTask);
+        });
       });
       return stored;
     } catch(e) {
@@ -2539,16 +2584,31 @@
     cnt.textContent = tasks.length;
     col.innerHTML   = '';
 
-    tasks.forEach((text, i) => {
+    tasks.forEach((rawTask, i) => {
+      const task = normalizeTask(rawTask);
+      const dday = calcDday(task.deadline);
+
       const card = document.createElement('div');
       card.className = 'kanban-card' +
         (colType === 'doing' ? ' doing-card' : colType === 'done' ? ' done-card-k' : '');
+      card.style.position = 'relative';
+
+      // D-day 뱃지 (마감 있을 때만)
+      if (task.deadline && colType !== 'done') {
+        const badge = document.createElement('span');
+        const color = dday <= 0 ? '#C0432A' : dday <= 3 ? '#C09840' : '#4A9E7A';
+        const label = dday < 0 ? `D+${Math.abs(dday)}` : dday === 0 ? 'D-day' : `D-${dday}`;
+        badge.style.cssText = `font-size:10px;font-weight:700;color:${color};background:${color}18;border-radius:3px;padding:1px 6px;margin-right:6px;flex-shrink:0;`;
+        badge.textContent = label;
+        card.appendChild(badge);
+      }
 
       // 태스크 텍스트 (더블클릭으로 인라인 편집)
       const textEl = document.createElement('span');
-      textEl.className    = 'kc-text';
-      textEl.textContent  = text;
-      textEl.title        = '더블클릭으로 편집';
+      textEl.className   = 'kc-text';
+      textEl.textContent = task.text;
+      textEl.title       = '더블클릭으로 편집';
+      textEl.style.flex  = '1';
       textEl.addEventListener('dblclick', () => startEdit(textEl, colType, i));
       card.appendChild(textEl);
 
@@ -2560,20 +2620,82 @@
       if (colType === 'done')  { move.textContent = '되돌리기'; move.addEventListener('click', () => moveTask('done',  'todo',  i)); }
       card.appendChild(move);
 
-      // 삭제 버튼
-      const del = document.createElement('span');
-      del.className   = 'kc-del';
-      del.textContent = '×';
-      del.title       = '삭제';
-      del.addEventListener('click', () => deleteTask(colType, i));
-      card.appendChild(del);
+      // ··· 메뉴 버튼
+      if (colType !== 'done') {
+        const menuBtn = document.createElement('span');
+        menuBtn.textContent = '···';
+        menuBtn.style.cssText = 'cursor:pointer;color:var(--text-3);font-size:14px;padding:0 4px;flex-shrink:0;line-height:1;';
+        menuBtn.addEventListener('click', e => { e.stopPropagation(); openTaskMenu(colType, i, card); });
+        card.appendChild(menuBtn);
+      } else {
+        // done열은 삭제만
+        const del = document.createElement('span');
+        del.className = 'kc-del'; del.textContent = '×'; del.title = '삭제';
+        del.addEventListener('click', () => deleteTask(colType, i));
+        card.appendChild(del);
+      }
 
       col.appendChild(card);
     });
   }
 
+  function openTaskMenu(colType, idx, cardEl) {
+    document.querySelectorAll('.task-menu').forEach(m => m.remove());
+    const task = normalizeTask(kanbanTasks[colType][idx]);
+
+    const menu = document.createElement('div');
+    menu.className = 'task-menu';
+    menu.style.cssText = 'position:absolute;right:0;top:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-lg);z-index:200;min-width:190px;padding:4px 0;margin-top:2px;';
+
+    // 마감일 설정 행
+    const dateRow = document.createElement('div');
+    dateRow.style.cssText = 'padding:8px 12px;font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:8px;';
+    const dateInput = document.createElement('input');
+    dateInput.type  = 'date';
+    dateInput.value = task.deadline || '';
+    dateInput.style.cssText = 'border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-size:12px;font-family:var(--font-sans);color:var(--text-1);background:var(--bg);outline:none;flex:1;';
+    dateRow.innerHTML = '<span style="color:var(--text-3);flex-shrink:0;">📅 마감일</span>';
+    dateRow.appendChild(dateInput);
+    dateInput.addEventListener('change', () => {
+      kanbanTasks[colType][idx] = { ...task, deadline: dateInput.value || null };
+      sortKanbanCol(colType);
+      saveCurrentKanban();
+      menu.remove();
+      renderKanban();
+      renderDdaySection();
+    });
+    menu.appendChild(dateRow);
+
+    // 마감일 삭제 (있을 때만)
+    if (task.deadline) {
+      const clearBtn = document.createElement('div');
+      clearBtn.style.cssText = 'padding:6px 12px;font-size:12px;color:var(--text-3);cursor:pointer;display:flex;align-items:center;gap:6px;';
+      clearBtn.innerHTML = '<span>✕</span> 마감일 삭제';
+      clearBtn.addEventListener('click', () => {
+        kanbanTasks[colType][idx] = { ...task, deadline: null };
+        saveCurrentKanban(); menu.remove(); renderKanban(); renderDdaySection();
+      });
+      menu.appendChild(clearBtn);
+    }
+
+    // 구분선 + 삭제
+    const sep = document.createElement('div');
+    sep.style.cssText = 'height:1px;background:var(--border);margin:3px 0;';
+    menu.appendChild(sep);
+
+    const delOpt = document.createElement('div');
+    delOpt.style.cssText = 'padding:8px 12px;font-size:12px;color:var(--urgent);cursor:pointer;display:flex;align-items:center;gap:6px;';
+    delOpt.innerHTML = '<span>🗑️</span> 태스크 삭제';
+    delOpt.addEventListener('click', () => { menu.remove(); deleteTask(colType, idx); });
+    menu.appendChild(delOpt);
+
+    cardEl.appendChild(menu);
+    setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 10);
+  }
+
   function startEdit(el, colType, idx) {
-    const orig  = el.textContent;
+    const task = normalizeTask(kanbanTasks[colType][idx]);
+    const orig = task.text;
     const input = document.createElement('input');
     input.value     = orig;
     input.className = 'kc-edit-input';
@@ -2584,7 +2706,7 @@
     const commit = () => {
       const val = input.value.trim();
       if (val && val !== orig) {
-        kanbanTasks[colType][idx] = val;
+        kanbanTasks[colType][idx] = { ...task, text: val };
         saveCurrentKanban();
       }
       renderKanban();
@@ -2603,21 +2725,25 @@
     }
     const [task] = kanbanTasks[from].splice(idx, 1);
     kanbanTasks[to].unshift(task);
+    if (to !== 'done') sortKanbanCol(to);
     saveCurrentKanban();
     renderKanban();
+    renderDdaySection();
   }
 
   function deleteTask(colType, idx) {
-    if (!confirm(`"${kanbanTasks[colType][idx]}" 을(를) 삭제할까요?`)) return;
+    const task = normalizeTask(kanbanTasks[colType][idx]);
+    if (!confirm(`"${task.text}" 을(를) 삭제할까요?`)) return;
     kanbanTasks[colType].splice(idx, 1);
     saveCurrentKanban();
     renderKanban();
+    renderDdaySection();
   }
 
   function addTask(col) {
     const text = prompt('새 태스크:');
     if (!text || !text.trim()) return;
-    kanbanTasks[col].push(text.trim());
+    kanbanTasks[col].push({ text: text.trim(), deadline: null });
     saveCurrentKanban();
     renderKanban();
   }
@@ -2636,7 +2762,8 @@
     Object.keys(PROJECTS).forEach(id => {
       const tasks = all[id];
       const pct   = calcProgress(tasks);
-      const next  = tasks.doing[0] || tasks.todo[0] || null;
+      const nextRaw = tasks.doing[0] || tasks.todo[0] || null;
+      const next = nextRaw ? normalizeTask(nextRaw).text : null;
 
       const card = document.querySelector(`.proj-card[onclick="openKanban('${id}')"]`);
       if (!card) return;
@@ -2652,7 +2779,65 @@
     });
   }
 
+  /* ── D-day 임박 섹션 (Home 화면) ──────────────────────────── */
+  function renderDdaySection() {
+    const section = document.getElementById('dday-section');
+    const list    = document.getElementById('dday-list');
+    if (!section || !list) return;
+
+    const all = loadKanbanAll();
+    const urgent = [];
+
+    Object.entries(all).forEach(([projId, proj]) => {
+      ['todo', 'doing'].forEach(col => {
+        (proj[col] || []).forEach(rawTask => {
+          const task = normalizeTask(rawTask);
+          const d = calcDday(task.deadline);
+          if (d !== null && d <= 3) {
+            urgent.push({ ...task, dday: d, projId });
+          }
+        });
+      });
+    });
+
+    urgent.sort((a, b) => a.dday - b.dday);
+
+    if (urgent.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+
+    section.style.display = '';
+    list.innerHTML = '';
+
+    urgent.forEach(task => {
+      const p = PROJECTS[task.projId];
+      const color = task.dday <= 0 ? '#C0432A' : task.dday <= 1 ? '#C09840' : '#4A9E7A';
+      const label = task.dday < 0 ? `D+${Math.abs(task.dday)}` : task.dday === 0 ? 'D-day' : `D-${task.dday}`;
+
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; gap:8px; padding:9px 12px; background:var(--surface); border:1px solid var(--border); border-left:3px solid ' + color + '; border-radius:var(--radius); font-size:12px;';
+      row.innerHTML = `
+        <span style="font-size:10px;font-weight:700;color:${color};background:${color}18;border-radius:3px;padding:1px 6px;flex-shrink:0;">${label}</span>
+        <span style="flex:1;color:var(--text-1);">${task.text}</span>
+        <span style="color:${p?.color || 'var(--text-3)'};font-size:10px;flex-shrink:0;">${p?.name || task.projId}</span>
+        <button style="font-size:10px;padding:3px 8px;background:var(--accent);color:white;border:none;border-radius:3px;cursor:pointer;flex-shrink:0;font-family:var(--font-sans);">MIT 추가</button>`;
+
+      row.querySelector('button').addEventListener('click', () => {
+        const emptyIdx = mitData.tasks.findIndex(t => !t.text.trim() && !t.done);
+        if (emptyIdx < 0) { alert('MIT 슬롯이 모두 차 있어요. 하나를 완료하거나 초기화해주세요.'); return; }
+        mitData.tasks[emptyIdx].text    = task.text;
+        mitData.tasks[emptyIdx].project = task.projId;
+        saveMITData(mitData);
+        renderMIT();
+      });
+
+      list.appendChild(row);
+    });
+  }
+
   renderProjectCards();
+  renderDdaySection();
 
   /* ════════════════════════════════════════════════════════════
      오늘 일정 — localStorage + 실시간 현재 블록 감지 + Hero 연동
@@ -3333,6 +3518,7 @@
       mitData = loadMITData();
       renderMIT();
       renderSchedule();
+      renderDdaySection();
     }
   }
 
