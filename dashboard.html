@@ -3519,9 +3519,10 @@
     document.getElementById('screen-' + name).classList.add('visible');
     const tab = document.querySelector(`[onclick="showScreen('${name}')"]`);
     if (tab) tab.classList.add('active');
-    if (name === 'capture') renderInbox();
-    if (name === 'weekly')  renderWeeklyScreen();
-    if (name === 'daily')   renderDailyScreen();
+    if (name === 'capture')  renderInbox();
+    if (name === 'weekly')   renderWeeklyScreen();
+    if (name === 'daily')    renderDailyScreen();
+    if (name === 'projects') renderProjectCards();
     if (name === 'home') {
       mitData = loadMITData();
       renderMIT();
