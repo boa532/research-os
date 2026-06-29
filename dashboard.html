@@ -1296,90 +1296,11 @@
       <span id="kanban-proj-deadline" style="font-size:12px; color:var(--text-3);"></span>
     </div>
 
-    <!-- 목록 뷰: 2열 그리드 -->
+    <!-- 목록 뷰: JS로 동적 렌더링 -->
     <div id="proj-list-view" style="overflow-y:auto; flex:1; padding:24px 28px;">
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; max-width:900px; margin:0 auto;">
-
-        <!-- 논문 -->
-        <div class="proj-card" onclick="openKanban('thesis')" style="border-left-color:var(--urgent);">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-            <span style="font-size:14px; font-weight:700; color:var(--text-1);">논문</span>
-            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:var(--urgent-bg); color:var(--urgent); font-weight:500;">D-3</span>
-            <div style="flex:1"></div>
-            <span style="font-size:11px; color:var(--text-3);">6/30</span>
-          </div>
-          <div style="margin-bottom:8px;">
-            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-3); margin-bottom:3px;"><span>진행률</span><span data-pct>—</span></div>
-            <div class="progress-bar-bg"><div class="progress-bar-fill urgent" style="width:0%"></div></div>
-          </div>
-          <div style="font-size:12px; color:var(--accent);" data-next>—</div>
-          <div class="proj-card-footer">태스크 보기 →</div>
-        </div>
-
-        <!-- Pibo -->
-        <div class="proj-card" onclick="openKanban('pibo')" style="border-left-color:#7A6EBA;">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-            <span style="font-size:14px; font-weight:700; color:var(--text-1);">Pibo 연구 설계</span>
-            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:#F0EEF9; color:#7A6EBA; font-weight:500;">진행 중</span>
-            <div style="flex:1"></div>
-            <span style="font-size:11px; color:var(--text-3);">미정</span>
-          </div>
-          <div style="margin-bottom:8px;">
-            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-3); margin-bottom:3px;"><span>진행률</span><span data-pct>—</span></div>
-            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:0%; background:#7A6EBA;"></div></div>
-          </div>
-          <div style="font-size:12px; color:var(--accent);" data-next>—</div>
-          <div class="proj-card-footer">태스크 보기 →</div>
-        </div>
-
-        <!-- Global Facilitator -->
-        <div class="proj-card" onclick="openKanban('gf')" style="border-left-color:#4A9E7A;">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-            <span style="font-size:14px; font-weight:700; color:var(--text-1);">Global Facilitator</span>
-            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:#E6F5EE; color:#4A9E7A; font-weight:500;">진행 중</span>
-            <div style="flex:1"></div>
-            <span style="font-size:11px; color:var(--text-3);">6/25</span>
-          </div>
-          <div style="margin-bottom:8px;">
-            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-3); margin-bottom:3px;"><span>진행률</span><span data-pct>—</span></div>
-            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:0%; background:#4A9E7A;"></div></div>
-          </div>
-          <div style="font-size:12px; color:var(--accent);" data-next>—</div>
-          <div class="proj-card-footer">태스크 보기 →</div>
-        </div>
-
-        <!-- AI Literacy -->
-        <div class="proj-card" onclick="openKanban('ai')" style="border-left-color:var(--accent);">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-            <span style="font-size:14px; font-weight:700; color:var(--text-1);">AI Digital Literacy</span>
-            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:var(--accent-bg); color:var(--accent); font-weight:500;">초기</span>
-            <div style="flex:1"></div>
-            <span style="font-size:11px; color:var(--text-3);">미정</span>
-          </div>
-          <div style="margin-bottom:8px;">
-            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-3); margin-bottom:3px;"><span>진행률</span><span data-pct>—</span></div>
-            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:0%"></div></div>
-          </div>
-          <div style="font-size:12px; color:var(--accent);" data-next>—</div>
-          <div class="proj-card-footer">태스크 보기 →</div>
-        </div>
-
-        <!-- 강의 준비 (절반 너비) -->
-        <div class="proj-card" onclick="openKanban('lecture')" style="border-left-color:#C09840;">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-            <span style="font-size:14px; font-weight:700; color:var(--text-1);">강의 준비</span>
-            <span style="font-size:11px; padding:2px 8px; border-radius:10px; background:#FBF5E6; color:#8A6820; font-weight:500;">대기</span>
-            <div style="flex:1"></div>
-            <span style="font-size:11px; color:var(--text-3);">7/10</span>
-          </div>
-          <div style="margin-bottom:8px;">
-            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-3); margin-bottom:3px;"><span>진행률</span><span data-pct>—</span></div>
-            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:0%; background:#C09840;"></div></div>
-          </div>
-          <div style="font-size:12px; color:var(--accent);" data-next>—</div>
-          <div class="proj-card-footer">태스크 보기 →</div>
-        </div>
-
+      <div id="proj-cards-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:14px; max-width:900px; margin:0 auto;"></div>
+      <div id="proj-hidden-bar" style="display:none; text-align:center; margin-top:16px;">
+        <button onclick="restoreAllProjects()" style="font-size:12px; color:var(--text-3); background:none; border:1px solid var(--border); border-radius:var(--radius-sm); padding:5px 14px; cursor:pointer; font-family:var(--font-sans);">숨긴 프로젝트 복원</button>
       </div>
     </div>
 
@@ -2757,26 +2678,113 @@
   }
 
   // 프로젝트 목록 카드의 진행률 / Next Action 을 실제 데이터로 갱신
+  const HIDDEN_PROJ_KEY = 'proj_hidden';
+
+  function loadHiddenProjects() {
+    try { return JSON.parse(localStorage.getItem(HIDDEN_PROJ_KEY) || '[]'); }
+    catch(e) { return []; }
+  }
+
   function renderProjectCards() {
-    const all = loadKanbanAll();
+    const grid   = document.getElementById('proj-cards-grid');
+    const hidBar = document.getElementById('proj-hidden-bar');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const all    = loadKanbanAll();
+    const hidden = loadHiddenProjects();
+
     Object.keys(PROJECTS).forEach(id => {
+      if (hidden.includes(id)) return;
+      const p    = PROJECTS[id];
       const tasks = all[id];
-      const pct   = calcProgress(tasks);
+      const pct  = calcProgress(tasks);
       const nextRaw = tasks.doing[0] || tasks.todo[0] || null;
       const next = nextRaw ? normalizeTask(nextRaw).text : null;
 
-      const card = document.querySelector(`.proj-card[onclick="openKanban('${id}')"]`);
-      if (!card) return;
+      const card = document.createElement('div');
+      card.className = 'proj-card';
+      card.style.borderLeftColor = p.color;
+      card.style.position = 'relative';
+      card.style.cursor = 'pointer';
 
-      const bar = card.querySelector('.progress-bar-fill');
-      if (bar) bar.style.width = pct + '%';
+      card.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <span style="font-size:14px; font-weight:700; color:var(--text-1);">${p.name}</span>
+          <div style="flex:1"></div>
+          <button class="proj-menu-btn" data-id="${id}" style="background:none;border:none;font-size:16px;color:var(--text-3);cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0;">···</button>
+        </div>
+        <div style="margin-bottom:8px;">
+          <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-3); margin-bottom:3px;">
+            <span>진행률</span><span>${pct}%</span>
+          </div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%; background:${p.color};"></div></div>
+        </div>
+        <div style="font-size:12px; color:var(--accent); margin-bottom:6px;">${next ? `→ ${next}` : '→ 모든 태스크 완료 ✓'}</div>
+        <div class="proj-card-footer">태스크 보기 →</div>`;
 
-      const pctEl = card.querySelector('[data-pct]');
-      if (pctEl) pctEl.textContent = pct + '%';
+      // 카드 클릭 → 칸반 열기 (메뉴 버튼 제외)
+      card.addEventListener('click', e => {
+        if (e.target.closest('.proj-menu-btn') || e.target.closest('.proj-card-menu')) return;
+        openKanban(id);
+      });
 
-      const nextEl = card.querySelector('[data-next]');
-      if (nextEl) nextEl.textContent = next ? `→ ${next}` : '→ 모든 태스크 완료 ✓';
+      // ··· 메뉴
+      card.querySelector('.proj-menu-btn').addEventListener('click', e => {
+        e.stopPropagation();
+        openProjCardMenu(id, e.currentTarget, card);
+      });
+
+      grid.appendChild(card);
     });
+
+    if (hidBar) hidBar.style.display = hidden.length > 0 ? '' : 'none';
+  }
+
+  function openProjCardMenu(id, btnEl, cardEl) {
+    document.querySelectorAll('.proj-card-menu').forEach(m => m.remove());
+    const p = PROJECTS[id];
+
+    const menu = document.createElement('div');
+    menu.className = 'proj-card-menu';
+    menu.style.cssText = 'position:absolute;right:10px;top:36px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-lg);z-index:200;min-width:180px;padding:4px 0;';
+
+    const clearOpt = document.createElement('div');
+    clearOpt.style.cssText = 'padding:9px 14px;font-size:12px;color:var(--text-2);cursor:pointer;display:flex;align-items:center;gap:8px;';
+    clearOpt.innerHTML = '<span>🗑️</span> 모든 태스크 삭제';
+    clearOpt.addEventListener('click', () => {
+      if (!confirm(`"${p.name}"의 모든 태스크를 삭제할까요?\n(되돌릴 수 없어요)`)) { menu.remove(); return; }
+      const all = loadKanbanAll();
+      all[id] = { todo: [], doing: [], done: [] };
+      saveKanbanAll(all);
+      menu.remove();
+      renderProjectCards();
+    });
+    menu.appendChild(clearOpt);
+
+    const sep = document.createElement('div');
+    sep.style.cssText = 'height:1px;background:var(--border);margin:3px 0;';
+    menu.appendChild(sep);
+
+    const hideOpt = document.createElement('div');
+    hideOpt.style.cssText = 'padding:9px 14px;font-size:12px;color:var(--text-3);cursor:pointer;display:flex;align-items:center;gap:8px;';
+    hideOpt.innerHTML = '<span>👁️</span> 카드 숨기기';
+    hideOpt.addEventListener('click', () => {
+      const hidden = loadHiddenProjects();
+      if (!hidden.includes(id)) hidden.push(id);
+      localStorage.setItem(HIDDEN_PROJ_KEY, JSON.stringify(hidden));
+      menu.remove();
+      renderProjectCards();
+    });
+    menu.appendChild(hideOpt);
+
+    cardEl.appendChild(menu);
+    setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 10);
+  }
+
+  function restoreAllProjects() {
+    localStorage.removeItem(HIDDEN_PROJ_KEY);
+    renderProjectCards();
   }
 
   /* ── D-day 임박 섹션 (Home 화면) ──────────────────────────── */
