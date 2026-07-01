@@ -2679,6 +2679,23 @@
       const nextRaw = tasks.doing[0] || tasks.todo[0] || null;
       const next = nextRaw ? normalizeTask(nextRaw).text : null;
 
+      // 가장 빠른 마감일 찾기 (todo + doing)
+      let earliest = null;
+      ['todo','doing'].forEach(col => {
+        (tasks[col] || []).forEach(raw => {
+          const t = normalizeTask(raw);
+          if (t.deadline && (!earliest || t.deadline < earliest)) earliest = t.deadline;
+        });
+      });
+      const ddayNum = earliest ? calcDday(earliest) : null;
+      let ddayHtml = '';
+      if (ddayNum !== null) {
+        const label = ddayNum < 0 ? `D+${Math.abs(ddayNum)}` : ddayNum === 0 ? 'D-day' : `D-${ddayNum}`;
+        const color = ddayNum <= 0 ? 'var(--urgent)' : ddayNum <= 3 ? '#C09840' : p.color;
+        const bg    = ddayNum <= 0 ? 'var(--urgent-bg)' : ddayNum <= 3 ? '#FBF5E6' : p.statusBg || '#F0F0F0';
+        ddayHtml = `<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${bg};color:${color};font-weight:600;">${label}</span>`;
+      }
+
       const card = document.createElement('div');
       card.className = 'proj-card';
       card.style.borderLeftColor = p.color;
@@ -2688,6 +2705,7 @@
       card.innerHTML = `
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
           <span style="font-size:14px; font-weight:700; color:var(--text-1);">${p.name}</span>
+          ${ddayHtml}
           <div style="flex:1"></div>
           <button class="proj-menu-btn" data-id="${id}" style="background:none;border:none;font-size:16px;color:var(--text-3);cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0;">···</button>
         </div>
