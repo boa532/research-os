@@ -2881,11 +2881,14 @@
   const SCHEDULE_KEY = 'dashboard_schedule';
 
   const SCHEDULE_SEED = [
-    { start:'09:00', end:'12:00', title:'논문 Deep Work',  project:'thesis',  type:'deep-work' },
-    { start:'12:00', end:'13:30', title:'점심 · 휴식',      project:null,      type:'break'     },
-    { start:'13:30', end:'15:30', title:'Pibo 선행연구',    project:'pibo',    type:'deep-work' },
-    { start:'15:30', end:'18:00', title:'간병',             project:null,      type:'care'      },
-    { start:'19:00', end:'21:00', title:'헬스',             project:null,      type:'exercise'  },
+    { start:'10:00', end:'11:30', title:'개인연구 Deep Work',   project:null, type:'deep-work' },
+    { start:'11:30', end:'11:45', title:'휴식',                 project:null, type:'break'     },
+    { start:'11:45', end:'13:00', title:'연구 프로젝트 지원',   project:null, type:'deep-work' },
+    { start:'13:00', end:'14:00', title:'점심',                 project:null, type:'break'     },
+    { start:'14:00', end:'15:30', title:'강의 · 튜터 준비',     project:null, type:'deep-work' },
+    { start:'15:30', end:'15:45', title:'휴식',                 project:null, type:'break'     },
+    { start:'15:45', end:'17:00', title:'유동 · 기타 업무',     project:null, type:'other'     },
+    { start:'20:00', end:'21:00', title:'정리 · 내일 준비',     project:null, type:'other'     },
   ];
 
   function loadSchedule(dateStr) {
