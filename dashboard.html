@@ -52,68 +52,10 @@
   /* ── Layout ────────────────────────────────────────────── */
   .app {
     display: grid;
-    grid-template-columns: 52px 1fr;
+    grid-template-columns: 1fr;
     grid-template-rows: 1fr;
     height: 100vh;
   }
-
-  /* ── Sidebar (icon-only nav) ────────────────────────────── */
-  .sidebar {
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 16px 0;
-    gap: 4px;
-  }
-
-  .nav-logo {
-    width: 32px;
-    height: 32px;
-    background: var(--accent);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 16px;
-  }
-
-  .nav-item {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--text-3);
-    font-size: 16px;
-    transition: background .15s, color .15s;
-    position: relative;
-  }
-
-  .nav-item:hover { background: var(--surface-2); color: var(--text-2); }
-  .nav-item.active { background: var(--accent-bg); color: var(--accent); }
-
-  .nav-item[data-tip]:hover::after {
-    content: attr(data-tip);
-    position: absolute;
-    left: 44px;
-    background: var(--text-1);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    white-space: nowrap;
-    z-index: 100;
-    font-family: var(--font-sans);
-  }
-
-  .nav-spacer { flex: 1; }
 
   /* ── Main area ──────────────────────────────────────────── */
   .main {
@@ -1087,32 +1029,18 @@
 <!-- ══ SCREEN 1: Home Dashboard ════════════════════════════ -->
 <div class="screen visible" id="screen-home">
   <div class="app">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="nav-logo">R</div>
-      <div class="nav-item active" data-tip="홈">⌂</div>
-      <div class="nav-item" data-tip="Daily">📅</div>
-      <div class="nav-item" data-tip="프로젝트">◫</div>
-      <div class="nav-item" data-tip="논문">📄</div>
-      <div class="nav-item" data-tip="Research">🔬</div>
-      <div class="nav-item" data-tip="대기중">⏳</div>
-      <div class="nav-spacer"></div>
-      <div class="nav-item" data-tip="주간 리뷰">◎</div>
-      <div class="nav-item" data-tip="설정">⚙</div>
-    </aside>
-
     <!-- Main -->
     <div class="main">
       <!-- Top bar -->
       <div class="topbar">
-        <span class="topbar-date">2026년 6월 27일</span>
-        <span class="topbar-day">금요일</span>
+        <span class="topbar-date" id="topbar-date"></span>
+        <span class="topbar-day" id="topbar-day"></span>
 
         <div class="energy-selector">
           <span class="energy-label">오늘 에너지</span>
-          <button class="energy-btn">높음</button>
-          <button class="energy-btn selected-mid">보통</button>
-          <button class="energy-btn">낮음</button>
+          <button class="energy-btn" id="energy-high" onclick="setEnergy('high')">높음</button>
+          <button class="energy-btn" id="energy-mid"  onclick="setEnergy('mid')">보통</button>
+          <button class="energy-btn" id="energy-low"  onclick="setEnergy('low')">낮음</button>
         </div>
 
         <div class="topbar-spacer"></div>
@@ -1164,46 +1092,15 @@
             <div id="dday-list" style="display:flex; flex-direction:column; gap:6px;"></div>
           </div>
 
-          <!-- ③ 오늘 챙길 것 -->
+          <!-- ③ 대기 중 -->
           <div>
-            <div class="section-label" style="margin-bottom:10px;">오늘 챙길 것</div>
-            <div class="bottom-cards" style="grid-template-columns:1fr 1fr; margin-bottom:10px;">
-              <div class="bottom-card">
-                <div class="bottom-card-icon">📄</div>
-                <div>
-                  <div class="bottom-card-label">오늘 읽을 논문</div>
-                  <div class="bottom-card-value">Hobbs 2017</div>
-                </div>
-              </div>
-              <div class="bottom-card done-card">
-                <div class="bottom-card-icon">💪</div>
-                <div>
-                  <div class="bottom-card-label">운동</div>
-                  <div class="bottom-card-value">헬스 완료 ✓</div>
-                </div>
-              </div>
+            <div style="display:flex; align-items:center; margin-bottom:10px;">
+              <div class="section-label" style="margin-bottom:0;">⏳ 대기 중</div>
+              <span style="font-size:11px; color:var(--text-3); margin-left:6px;">— 답장/확인 대기 중인 것들</span>
+              <div style="flex:1;"></div>
+              <button onclick="openWaitingModal()" style="font-size:11px; padding:3px 10px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-2); cursor:pointer; font-family:var(--font-sans);">+ 추가</button>
             </div>
-
-            <!-- 대기 중 태스크 목록 -->
-            <div class="section-label" style="margin-bottom:8px;">대기 중</div>
-            <div style="display:flex; flex-direction:column; gap:6px;">
-              <div class="waiting-item">
-                <div class="waiting-dot"></div>
-                <div style="flex:1;">
-                  <div style="font-size:12px; color:var(--text-1);">교수님 피드백 — 논문 1장</div>
-                  <div style="font-size:11px; color:var(--text-3); margin-top:1px;">논문 · 제출일 6/20</div>
-                </div>
-                <span class="waiting-days">7일째</span>
-              </div>
-              <div class="waiting-item">
-                <div class="waiting-dot"></div>
-                <div style="flex:1;">
-                  <div style="font-size:12px; color:var(--text-1);">Code.org 워크샵 일정 확인</div>
-                  <div style="font-size:11px; color:var(--text-3); margin-top:1px;">Global Facilitator · 문의일 6/25</div>
-                </div>
-                <span class="waiting-days">2일째</span>
-              </div>
-            </div>
+            <div id="waiting-list" style="display:flex; flex-direction:column; gap:6px;"></div>
           </div>
 
         </div><!-- /home-inner -->
@@ -1385,10 +1282,17 @@
           style="padding:4px 10px; background:transparent; border:1px solid var(--border); border-radius:20px; font-size:11px; font-family:var(--font-sans); cursor:pointer; color:var(--text-3);">연결 해제</button>
       </div>
 
-      <button onclick="openAddEvent(new Date().toISOString().slice(0,10))" style="background:var(--accent); color:white; border:none; border-radius:20px; padding:7px 16px; font-size:12px; font-family:var(--font-sans); cursor:pointer;">+ 일정 추가</button>
+      <!-- 계획 / 리뷰 탭 -->
+      <div style="display:flex; background:var(--surface-2); border-radius:20px; padding:3px; gap:2px;">
+        <button id="monthly-tab-plan" onclick="switchMonthlyTab('plan')" style="padding:5px 16px; border:none; border-radius:16px; font-size:12px; font-family:var(--font-sans); cursor:pointer; font-weight:500; background:var(--accent); color:white; transition:all .15s;">계획</button>
+        <button id="monthly-tab-review" onclick="switchMonthlyTab('review')" style="padding:5px 16px; border:none; border-radius:16px; font-size:12px; font-family:var(--font-sans); cursor:pointer; font-weight:500; background:transparent; color:var(--text-3); transition:all .15s;">리뷰</button>
+      </div>
+
+      <button onclick="openAddEvent(new Date().toISOString().slice(0,10))" id="monthly-add-event-btn" style="background:var(--accent); color:white; border:none; border-radius:20px; padding:7px 16px; font-size:12px; font-family:var(--font-sans); cursor:pointer;">+ 일정 추가</button>
     </div>
 
-    <div style="display:grid; grid-template-columns:1fr 300px; flex:1; overflow:hidden;">
+    <!-- 계획 뷰 -->
+    <div id="monthly-plan-view" style="display:grid; grid-template-columns:1fr 300px; flex:1; overflow:hidden;">
 
       <!-- Calendar grid -->
       <div style="overflow-y:auto; padding:24px 28px;">
@@ -1427,7 +1331,7 @@
         </div>
       </div>
 
-      <!-- Right: Monthly Goals (localStorage 저장) -->
+      <!-- Right: Monthly Goals -->
       <div style="border-left:1px solid var(--border); background:var(--surface); overflow-y:auto; padding:20px 18px;">
         <div class="section-label" style="margin-bottom:14px;" id="monthly-goal-title">— 월 목표</div>
         <div id="monthly-goals-list" style="display:flex; flex-direction:column; gap:14px;"></div>
@@ -1436,6 +1340,42 @@
         </div>
       </div>
     </div>
+
+    <!-- 리뷰 뷰 (전체 너비) -->
+    <div id="monthly-review-view" style="display:none; flex:1; overflow-y:auto; padding:36px 0; background:var(--bg);">
+      <div style="max-width:780px; margin:0 auto; padding:0 36px; display:flex; flex-direction:column; gap:24px;">
+
+        <div style="font-size:13px; color:var(--text-3); font-style:italic;">
+          이달을 돌아보고, 다음 달을 위한 방향을 잡아요.
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="font-size:12px; font-weight:600; color:var(--text-2);">✅ 이번 달 달성한 것</div>
+            <textarea id="mr-achieve" rows="6" style="width:100%; padding:14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; outline:none; line-height:1.7; box-sizing:border-box;" placeholder="완료한 목표, 마감한 프로젝트, 예상보다 잘 된 것..."></textarea>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="font-size:12px; font-weight:600; color:var(--text-2);">🔧 아쉬운 것 / 개선점</div>
+            <textarea id="mr-improve" rows="6" style="width:100%; padding:14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; outline:none; line-height:1.7; box-sizing:border-box;" placeholder="못 한 것, 다음 달에 다르게 할 것..."></textarea>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="font-size:12px; font-weight:600; color:var(--text-2);">💡 핵심 배움 / 인사이트</div>
+            <textarea id="mr-learn" rows="5" style="width:100%; padding:14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; outline:none; line-height:1.7; box-sizing:border-box;" placeholder="이달 가장 중요한 인사이트, 기억할 것..."></textarea>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="font-size:12px; font-weight:600; color:var(--text-2);">🎯 다음 달 핵심 3가지</div>
+            <textarea id="mr-next" rows="5" style="width:100%; padding:14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; outline:none; line-height:1.7; box-sizing:border-box;" placeholder="다음 달 반드시 할 3가지..."></textarea>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:12px;">
+          <button onclick="saveMonthlyReview()" style="padding:12px 32px; background:var(--accent); color:white; border:none; border-radius:var(--radius); font-size:13px; font-family:var(--font-sans); font-weight:500; cursor:pointer;">리뷰 저장</button>
+          <div id="mr-save-msg" style="display:none; font-size:12px; color:var(--accent);">저장되었습니다 ✓</div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1601,6 +1541,34 @@
         <div id="weekly-save-msg" style="display:none; text-align:center; font-size:12px; color:var(--accent); margin-top:8px;">저장되었습니다 ✓</div>
       </div>
 
+      <!-- 주간 리뷰 -->
+      <div>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px; cursor:pointer;" onclick="toggleWeeklyReview()">
+          <div class="section-label" style="margin-bottom:0;">주간 리뷰</div>
+          <span id="wr-toggle-icon" style="font-size:11px; color:var(--text-3);">▸ 펼치기</span>
+        </div>
+        <div id="weekly-review-body" style="display:none; flex-direction:column; gap:10px;">
+          <div>
+            <div style="font-size:11px; color:var(--text-3); font-weight:500; margin-bottom:5px;">✅ 이번 주 잘 된 것</div>
+            <textarea id="wr-good" rows="2" style="width:100%; padding:10px 12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; outline:none; line-height:1.6; box-sizing:border-box;" placeholder="잘 완수한 것, 예상보다 잘 된 것..."></textarea>
+          </div>
+          <div>
+            <div style="font-size:11px; color:var(--text-3); font-weight:500; margin-bottom:5px;">🔧 개선할 것</div>
+            <textarea id="wr-improve" rows="2" style="width:100%; padding:10px 12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; outline:none; line-height:1.6; box-sizing:border-box;" placeholder="다음 주에 다르게 할 것, 아쉬운 점..."></textarea>
+          </div>
+          <div>
+            <div style="font-size:11px; color:var(--text-3); font-weight:500; margin-bottom:5px;">💡 배운 것 / 인사이트</div>
+            <textarea id="wr-learn" rows="2" style="width:100%; padding:10px 12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; outline:none; line-height:1.6; box-sizing:border-box;" placeholder="새로 깨달은 것, 기억할 것..."></textarea>
+          </div>
+          <div>
+            <div style="font-size:11px; color:var(--text-3); font-weight:500; margin-bottom:5px;">🎯 다음 주 우선순위</div>
+            <textarea id="wr-next" rows="2" style="width:100%; padding:10px 12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; outline:none; line-height:1.6; box-sizing:border-box;" placeholder="다음 주 반드시 할 것 1~3가지..."></textarea>
+          </div>
+          <button onclick="saveWeeklyReview()" style="width:100%; padding:11px; background:var(--surface-2); color:var(--text-2); border:1px solid var(--border); border-radius:var(--radius); font-size:12px; font-family:var(--font-sans); cursor:pointer;">리뷰 저장</button>
+          <div id="wr-save-msg" style="display:none; text-align:center; font-size:12px; color:var(--accent);">저장되었습니다 ✓</div>
+        </div>
+      </div>
+
       <div class="annotation">
         💡 매주 월요일 아침 5분. 월간 목표 보면서 이번 주 목표 3개만 추려서 입력. 저장하면 Daily Planning에서 MIT를 설정할 때 이 목표가 위에 보임.
       </div>
@@ -1614,13 +1582,17 @@
   <div style="display:flex; flex-direction:column; height:100%; background:var(--bg);">
 
     <!-- Date header -->
-    <div style="display:flex; align-items:center; gap:12px; padding:14px 28px; background:var(--surface); border-bottom:1px solid var(--border);">
-      <div>
+    <div style="display:flex; align-items:center; gap:10px; padding:14px 28px; background:var(--surface); border-bottom:1px solid var(--border);">
+      <button onclick="changeDailyDate(-1)" style="background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; font-size:14px; cursor:pointer; color:var(--text-2);">‹</button>
+      <div style="display:flex; align-items:baseline; gap:8px;">
         <span id="daily-date-title" style="font-family:var(--font-sans); font-size:18px; font-weight:600; color:var(--text-1)"></span>
-        <span id="daily-day-label" style="font-size:13px; color:var(--text-3); margin-left:8px;"></span>
+        <span id="daily-day-label" style="font-size:13px; color:var(--text-3);"></span>
+        <span id="daily-today-badge" style="display:none; font-size:11px; color:var(--accent); background:var(--accent-bg); border-radius:3px; padding:1px 7px; font-weight:500;">오늘</span>
       </div>
+      <button onclick="changeDailyDate(1)" style="background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; font-size:14px; cursor:pointer; color:var(--text-2);">›</button>
       <div style="flex:1"></div>
-      <span onclick="navigateTo('screen-weekly')" style="font-size:12px; color:var(--accent); cursor:pointer;">← 이번 주 목표 보기</span>
+      <span onclick="changeDailyDate(0)" style="font-size:12px; color:var(--text-3); cursor:pointer; margin-right:4px;">오늘로</span>
+      <span onclick="navigateTo('screen-weekly')" style="font-size:12px; color:var(--accent); cursor:pointer;">← 이번 주 목표</span>
     </div>
 
     <div style="display:grid; grid-template-columns:1fr 340px; flex:1; overflow:hidden;">
@@ -2611,7 +2583,12 @@
     menu.appendChild(delOpt);
 
     cardEl.appendChild(menu);
-    setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 10);
+    const outsideHandler = (e) => {
+      if (menu.contains(e.target)) return;
+      document.removeEventListener('click', outsideHandler);
+      menu.remove();
+    };
+    setTimeout(() => document.addEventListener('click', outsideHandler), 10);
   }
 
   function startEdit(el, colType, idx) {
@@ -2846,6 +2823,38 @@
 
   renderProjectCards();
   renderDdaySection();
+  renderWaiting();
+
+  /* ── 홈 날짜 + 에너지 초기화 ─────────────────────────────── */
+  (function initTopbar() {
+    const d   = new Date();
+    const DAY = ['일','월','화','수','목','금','토'];
+    const dateEl = document.getElementById('topbar-date');
+    const dayEl  = document.getElementById('topbar-day');
+    if (dateEl) dateEl.textContent = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
+    if (dayEl)  dayEl.textContent  = DAY[d.getDay()] + '요일';
+  })();
+
+  function setEnergy(level) {
+    const MAP = {
+      high: { cls: 'selected-high', label: '높음' },
+      mid:  { cls: 'selected-mid',  label: '보통' },
+      low:  { cls: 'selected-low',  label: '낮음'  },
+    };
+    ['high','mid','low'].forEach(k => {
+      const btn = document.getElementById('energy-' + k);
+      if (!btn) return;
+      btn.className = 'energy-btn' + (k === level ? ' ' + MAP[k].cls : '');
+    });
+    localStorage.setItem('dashboard_energy', JSON.stringify({ date: todayStr(), level }));
+  }
+
+  (function loadEnergy() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('dashboard_energy') || '{}');
+      setEnergy(raw.date === todayStr() ? (raw.level || 'mid') : 'mid');
+    } catch(e) { setEnergy('mid'); }
+  })();
 
   /* ════════════════════════════════════════════════════════════
      오늘 일정 — localStorage + 실시간 현재 블록 감지 + Hero 연동
@@ -2861,18 +2870,25 @@
     { start:'19:00', end:'21:00', title:'헬스',             project:null,      type:'exercise'  },
   ];
 
-  function loadSchedule() {
+  function loadSchedule(dateStr) {
+    const key = SCHEDULE_KEY + '_' + (dateStr || todayStr());
     try {
-      const raw = JSON.parse(localStorage.getItem(SCHEDULE_KEY) || '{}');
-      if (raw.date === todayStr()) return raw.blocks;
+      const raw = JSON.parse(localStorage.getItem(key));
+      if (raw && raw.blocks) return raw.blocks;
     } catch(e) {}
-    const blocks = JSON.parse(JSON.stringify(SCHEDULE_SEED));
-    saveSchedule(blocks);
-    return blocks;
+    // 레거시 키 폴백 (오늘 날짜만)
+    if (!dateStr || dateStr === todayStr()) {
+      try {
+        const legacy = JSON.parse(localStorage.getItem(SCHEDULE_KEY) || '{}');
+        if (legacy.date === todayStr() && legacy.blocks) return legacy.blocks;
+      } catch(e) {}
+    }
+    return JSON.parse(JSON.stringify(SCHEDULE_SEED));
   }
 
-  function saveSchedule(blocks) {
-    localStorage.setItem(SCHEDULE_KEY, JSON.stringify({ date: todayStr(), blocks }));
+  function saveSchedule(blocks, dateStr) {
+    const key = SCHEDULE_KEY + '_' + (dateStr || todayStr());
+    localStorage.setItem(key, JSON.stringify({ blocks }));
   }
 
   function timeToMin(t) {
@@ -3271,14 +3287,234 @@
     setTimeout(() => msg.style.display = 'none', 2000);
   }
 
+  /* ── 주간 리뷰 ────────────────────────────────────────────── */
+  function loadWeeklyReviews() {
+    try { return JSON.parse(localStorage.getItem('weekly_reviews') || '{}'); } catch(e) { return {}; }
+  }
+
+  function toggleWeeklyReview() {
+    const body = document.getElementById('weekly-review-body');
+    const icon = document.getElementById('wr-toggle-icon');
+    if (!body) return;
+    const open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'flex';
+    if (icon) icon.textContent = open ? '▸ 펼치기' : '▾ 접기';
+    if (!open) {
+      const monday = getWeekStart(weekOffset);
+      const key    = getWeekKey(monday);
+      const data   = (loadWeeklyReviews()[key] || {});
+      document.getElementById('wr-good').value    = data.good    || '';
+      document.getElementById('wr-improve').value = data.improve || '';
+      document.getElementById('wr-learn').value   = data.learn   || '';
+      document.getElementById('wr-next').value    = data.next    || '';
+    }
+  }
+
+  function saveWeeklyReview() {
+    const monday = getWeekStart(weekOffset);
+    const key    = getWeekKey(monday);
+    const all    = loadWeeklyReviews();
+    all[key] = {
+      good:    document.getElementById('wr-good').value,
+      improve: document.getElementById('wr-improve').value,
+      learn:   document.getElementById('wr-learn').value,
+      next:    document.getElementById('wr-next').value,
+    };
+    localStorage.setItem('weekly_reviews', JSON.stringify(all));
+    const msg = document.getElementById('wr-save-msg');
+    msg.style.display = '';
+    setTimeout(() => msg.style.display = 'none', 2000);
+  }
+
+  /* ── 대기 중 ──────────────────────────────────────────────── */
+  const WAITING_KEY = 'dashboard_waiting';
+
+  function loadWaiting() {
+    try { return JSON.parse(localStorage.getItem(WAITING_KEY) || '[]'); }
+    catch(e) { return []; }
+  }
+
+  function saveWaiting(list) {
+    localStorage.setItem(WAITING_KEY, JSON.stringify(list));
+  }
+
+  function renderWaiting() {
+    const container = document.getElementById('waiting-list');
+    if (!container) return;
+    const list = loadWaiting();
+
+    if (list.length === 0) {
+      container.innerHTML = '<div style="font-size:12px; color:var(--text-3); padding:10px 0;">대기 중인 항목이 없어요. 공을 던진 게 있다면 기록해두세요.</div>';
+      return;
+    }
+
+    container.innerHTML = '';
+    const now = new Date(); now.setHours(0,0,0,0);
+
+    list.forEach((item, idx) => {
+      const start  = new Date(item.startDate + 'T00:00:00');
+      const days   = Math.max(0, Math.round((now - start) / 86400000));
+      const proj   = PROJECTS[item.project];
+      const urgent = days >= 7;
+
+      const row = document.createElement('div');
+      row.className = 'waiting-item';
+      row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:12px;';
+
+      row.innerHTML = `
+        <div class="waiting-dot" style="width:8px;height:8px;border-radius:50%;background:${urgent ? 'var(--urgent)' : 'var(--accent)'};flex-shrink:0;"></div>
+        <div style="flex:1; min-width:0;">
+          <div style="color:var(--text-1); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.text}</div>
+          ${proj ? `<div style="font-size:11px; color:${proj.color}; margin-top:2px;">${proj.name}</div>` : ''}
+        </div>
+        <span class="waiting-days" style="font-size:11px; color:${urgent ? 'var(--urgent)' : 'var(--text-3)'}; flex-shrink:0; font-weight:${urgent ? '600' : '400'};">${days}일째</span>
+        <button style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px;padding:0 2px;flex-shrink:0;" title="완료/삭제">✓</button>`;
+
+      row.querySelector('button').addEventListener('click', () => {
+        const updated = loadWaiting().filter((_, i) => i !== idx);
+        saveWaiting(updated);
+        renderWaiting();
+      });
+
+      container.appendChild(row);
+    });
+  }
+
+  // 대기 중 추가 모달
+  function openWaitingModal() {
+    document.querySelectorAll('.waiting-modal').forEach(m => m.remove());
+
+    const modal = document.createElement('div');
+    modal.className = 'waiting-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(28,24,20,.4);backdrop-filter:blur(3px);z-index:2000;display:flex;align-items:center;justify-content:center;';
+
+    const box = document.createElement('div');
+    box.style.cssText = 'background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);width:380px;padding:24px;';
+    box.onclick = e => e.stopPropagation();
+
+    box.innerHTML = `
+      <div style="font-size:15px;font-weight:700;color:var(--text-1);margin-bottom:4px;">대기 중 항목 추가</div>
+      <div style="font-size:12px;color:var(--text-3);margin-bottom:18px;">내가 공을 던지고 상대방 응답을 기다리는 것</div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <input id="wt-text" placeholder="예: 교수님 피드백 대기 — 논문 2장" style="padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font-sans);outline:none;color:var(--text-1);background:var(--bg);width:100%;box-sizing:border-box;">
+        <select id="wt-proj" style="padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font-sans);outline:none;color:var(--text-1);background:var(--bg);">
+          <option value="">프로젝트 없음</option>
+          ${Object.entries(PROJECTS).map(([k,p]) => `<option value="${k}">${p.name}</option>`).join('')}
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:20px;">
+        <div style="flex:1;"></div>
+        <button id="wt-cancel" style="padding:9px 16px;background:var(--surface-2);border:none;border-radius:var(--radius-sm);font-size:13px;font-family:var(--font-sans);cursor:pointer;color:var(--text-2);">취소</button>
+        <button id="wt-save" style="padding:9px 16px;background:var(--accent);border:none;border-radius:var(--radius-sm);font-size:13px;font-family:var(--font-sans);color:white;cursor:pointer;font-weight:500;">추가</button>
+      </div>`;
+
+    box.querySelector('#wt-cancel').onclick = () => modal.remove();
+    box.querySelector('#wt-save').onclick = () => {
+      const text = box.querySelector('#wt-text').value.trim();
+      if (!text) { box.querySelector('#wt-text').focus(); return; }
+      const list = loadWaiting();
+      list.push({
+        text,
+        project:   box.querySelector('#wt-proj').value || null,
+        startDate: new Date().toISOString().slice(0,10),
+      });
+      saveWaiting(list);
+      modal.remove();
+      renderWaiting();
+    };
+    box.querySelector('#wt-text').addEventListener('keydown', e => {
+      if (e.key === 'Enter') box.querySelector('#wt-save').click();
+      if (e.key === 'Escape') modal.remove();
+    });
+
+    modal.onclick = () => modal.remove();
+    modal.appendChild(box);
+    document.body.appendChild(modal);
+    setTimeout(() => box.querySelector('#wt-text').focus(), 50);
+  }
+
+  /* ── 월간 탭 전환 ─────────────────────────────────────────── */
+  let currentMonthlyTab = 'plan';
+
+  function switchMonthlyTab(tab) {
+    currentMonthlyTab = tab;
+    const planView   = document.getElementById('monthly-plan-view');
+    const reviewView = document.getElementById('monthly-review-view');
+    const planBtn    = document.getElementById('monthly-tab-plan');
+    const reviewBtn  = document.getElementById('monthly-tab-review');
+    const addBtn     = document.getElementById('monthly-add-event-btn');
+
+    if (tab === 'plan') {
+      planView.style.display   = 'grid';
+      reviewView.style.display = 'none';
+      planBtn.style.background   = 'var(--accent)';   planBtn.style.color   = 'white';
+      reviewBtn.style.background = 'transparent';     reviewBtn.style.color = 'var(--text-3)';
+      if (addBtn) addBtn.style.display = '';
+    } else {
+      planView.style.display   = 'none';
+      reviewView.style.display = 'block';
+      reviewBtn.style.background = 'var(--accent)';  reviewBtn.style.color = 'white';
+      planBtn.style.background   = 'transparent';    planBtn.style.color   = 'var(--text-3)';
+      if (addBtn) addBtn.style.display = 'none';
+      loadMonthlyReviewToForm();
+    }
+  }
+
+  function loadMonthlyReviewToForm() {
+    const mKey = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
+    const data = (loadMonthlyReviews()[mKey] || {});
+    document.getElementById('mr-achieve').value = data.achieve || '';
+    document.getElementById('mr-improve').value = data.improve || '';
+    document.getElementById('mr-learn').value   = data.learn   || '';
+    document.getElementById('mr-next').value    = data.next    || '';
+    const msg = document.getElementById('mr-save-msg');
+    if (msg) msg.style.display = 'none';
+  }
+
+  /* ── 월간 리뷰 ────────────────────────────────────────────── */
+  function loadMonthlyReviews() {
+    try { return JSON.parse(localStorage.getItem('monthly_reviews') || '{}'); } catch(e) { return {}; }
+  }
+
+  function saveMonthlyReview() {
+    const mKey = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
+    const all  = loadMonthlyReviews();
+    all[mKey]  = {
+      achieve: document.getElementById('mr-achieve').value,
+      improve: document.getElementById('mr-improve').value,
+      learn:   document.getElementById('mr-learn').value,
+      next:    document.getElementById('mr-next').value,
+    };
+    localStorage.setItem('monthly_reviews', JSON.stringify(all));
+    const msg = document.getElementById('mr-save-msg');
+    msg.style.display = '';
+    setTimeout(() => msg.style.display = 'none', 2000);
+  }
+
   /* ════════════════════════════════════════════════════════════
      DAILY — 오늘 날짜 + MIT/일정 공유 + 노트/회고 localStorage
      ════════════════════════════════════════════════════════════ */
 
   const DAY_KO = ['일','월','화','수','목','금','토'];
 
+  let dailyViewDate = new Date();
+
   function todayKey() {
-    return today.toISOString().slice(0, 10);
+    return todayStr();
+  }
+
+  function dailyViewDateStr() {
+    return dailyViewDate.toISOString().slice(0, 10);
+  }
+
+  function changeDailyDate(delta) {
+    if (delta === 0) {
+      dailyViewDate = new Date();
+    } else {
+      dailyViewDate = new Date(dailyViewDate);
+      dailyViewDate.setDate(dailyViewDate.getDate() + delta);
+    }
+    renderDailyScreen();
   }
 
   function loadDailyNotes() {
@@ -3290,33 +3526,45 @@
   }
 
   function renderDailyScreen() {
+    const d       = dailyViewDate;
+    const dStr    = dailyViewDateStr();
+    const isToday = dStr === todayStr();
+
     // 날짜 헤더
     document.getElementById('daily-date-title').textContent =
-      `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+      `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
     document.getElementById('daily-day-label').textContent =
-      `${DAY_KO[today.getDay()]}요일`;
+      `${DAY_KO[d.getDay()]}요일`;
+    const badge = document.getElementById('daily-today-badge');
+    if (badge) badge.style.display = isToday ? '' : 'none';
 
-    // 이번 주 목표 컨텍스트
-    const monday = getWeekStart(0);
-    const wKey   = getWeekKey(monday);
-    const wData  = (loadWeeklyData()[wKey] || {});
-    const wTexts = [wData.g1, wData.g2, wData.g3].filter(Boolean).map(t => t.split('\n')[0].trim()).filter(Boolean);
+    // 해당 주 목표 컨텍스트
+    const wkStart = new Date(d);
+    const wkDow   = wkStart.getDay() === 0 ? 6 : wkStart.getDay() - 1;
+    wkStart.setDate(wkStart.getDate() - wkDow);
+    wkStart.setHours(0, 0, 0, 0);
+    const wKey    = getWeekKey(wkStart);
+    const wData   = (loadWeeklyData()[wKey] || {});
+    const wTexts  = [wData.g1, wData.g2, wData.g3].filter(Boolean).map(t => t.split('\n')[0].trim()).filter(Boolean);
     document.getElementById('daily-weekly-context-body').textContent =
       wTexts.length ? wTexts.join(' · ') : '주간 목표 화면에서 목표를 입력하면 여기 표시됩니다.';
 
-    // MIT (dashboard_mit 공유)
+    // MIT
     renderDailyMIT();
 
-    // 일정 (dashboard_schedule 공유)
+    // 일정 (날짜별)
     renderDailySchedule();
 
-    // 노트 / 회고 로드
-    const dk = todayKey();
-    document.getElementById('daily-notes').value  = (loadDailyNotes()[dk] || '');
-    document.getElementById('daily-review').value = (loadDailyReview()[dk] || '');
+    // 노트 / 회고 (날짜별)
+    document.getElementById('daily-notes').value  = (loadDailyNotes()[dStr] || '');
+    document.getElementById('daily-review').value = (loadDailyReview()[dStr] || '');
 
-    // 인박스 미분류 항목 표시
-    renderDailyInbox();
+    // 인박스 미분류 (오늘만 표시)
+    if (isToday) renderDailyInbox();
+    else {
+      const inboxEl = document.getElementById('daily-inbox-section');
+      if (inboxEl) inboxEl.style.display = 'none';
+    }
   }
 
   const PROJ_OPTS = [
@@ -3379,7 +3627,7 @@
   let _editBlockIdx = -1;
 
   function openBlockModal(idx) {
-    const blocks = loadSchedule();
+    const blocks = loadSchedule(dailyViewDateStr());
     _editBlockIdx = (idx !== undefined) ? idx : -1;
 
     const isEdit = _editBlockIdx >= 0;
@@ -3412,7 +3660,8 @@
 
     if (!title || !start || !end) { alert('제목, 시작 시간, 종료 시간을 입력해 주세요.'); return; }
 
-    const blocks = loadSchedule();
+    const dStr  = dailyViewDateStr();
+    const blocks = loadSchedule(dStr);
     const block  = { start, end, title, type, project: project || null };
 
     if (_editBlockIdx >= 0) {
@@ -3422,20 +3671,21 @@
       blocks.sort((a, b) => a.start.localeCompare(b.start));
     }
 
-    saveSchedule(blocks);
+    saveSchedule(blocks, dStr);
     document.getElementById('block-modal').style.display = 'none';
     renderDailySchedule();
-    renderSchedule(); // Home 화면에도 반영
+    if (dStr === todayStr()) renderSchedule();
   }
 
   function deleteBlock() {
     if (_editBlockIdx < 0) return;
-    const blocks = loadSchedule();
+    const dStr   = dailyViewDateStr();
+    const blocks = loadSchedule(dStr);
     blocks.splice(_editBlockIdx, 1);
-    saveSchedule(blocks);
+    saveSchedule(blocks, dStr);
     document.getElementById('block-modal').style.display = 'none';
     renderDailySchedule();
-    renderSchedule();
+    if (dStr === todayStr()) renderSchedule();
   }
 
   function renderDailySchedule() {
@@ -3446,7 +3696,7 @@
     const TYPE_COLOR  = { 'deep-work': 'var(--accent)', 'break': '#9C9790', 'care': '#C0432A', 'exercise': '#4A9E7A', 'other': 'var(--accent)' };
     const TYPE_LABEL  = { 'deep-work': 'Deep Work', 'break': '휴식', 'care': '간병', 'exercise': '운동', 'other': '' };
 
-    const blocks = loadSchedule();
+    const blocks = loadSchedule(dailyViewDateStr());
 
     if (blocks.length === 0) {
       container.innerHTML = '<div style="font-size:12px; color:var(--text-3); padding:8px 0;">등록된 블록이 없어요. + 블록 추가로 시작해보세요.</div>';
@@ -3500,9 +3750,9 @@
     }
   }
 
-  // 노트/회고 자동 저장
+  // 노트/회고 자동 저장 (현재 뷰 날짜 기준)
   document.addEventListener('input', e => {
-    const dk = todayKey();
+    const dk = dailyViewDateStr();
     if (e.target.id === 'daily-notes') {
       const all = loadDailyNotes(); all[dk] = e.target.value;
       localStorage.setItem('daily_notes', JSON.stringify(all));
@@ -3528,6 +3778,7 @@
       renderMIT();
       renderSchedule();
       renderDdaySection();
+      renderWaiting();
     }
   }
 
@@ -3575,6 +3826,7 @@
     renderMonthlyGoals();
     renderManualEvents();
     if (gcalConnected) fetchCalendarEvents();
+    if (currentMonthlyTab === 'review') loadMonthlyReviewToForm();
   }
 
   function buildCalendarGrid() {
