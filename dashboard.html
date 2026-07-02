@@ -1292,16 +1292,16 @@
     </div>
 
     <!-- 계획 뷰 -->
-    <div id="monthly-plan-view" style="display:grid; grid-template-columns:1fr 300px; flex:1; overflow:hidden;">
+    <div id="monthly-plan-view" style="display:grid; grid-template-columns:minmax(0,1fr) 300px; flex:1; overflow:hidden;">
 
       <!-- Calendar grid -->
-      <div style="overflow-y:auto; padding:24px 28px;">
+      <div style="overflow:auto; padding:24px 28px; min-width:0;">
         <div class="annotation" style="margin-bottom:16px;">
           💡 <strong>월간 계획의 역할:</strong> 프로젝트 마감일과 주요 이정표를 먼저 배치. 이게 주차별 목표와 데일리 MIT의 기준이 됨.
         </div>
 
         <!-- Day headers -->
-        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:1px; margin-bottom:2px;">
+        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:1px; margin-bottom:2px; min-width:420px;">
           <div style="text-align:center; font-size:11px; color:var(--text-3); padding:6px 0; font-weight:500;">일</div>
           <div style="text-align:center; font-size:11px; color:var(--text-3); padding:6px 0; font-weight:500;">월</div>
           <div style="text-align:center; font-size:11px; color:var(--text-3); padding:6px 0; font-weight:500;">화</div>
@@ -1312,7 +1312,7 @@
         </div>
 
         <!-- Calendar cells: JS로 동적 생성 -->
-        <div id="cal-grid" style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px;"></div>
+        <div id="cal-grid" style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px; min-width:420px;"></div>
 
         <!-- Legend -->
         <div style="display:flex; gap:16px; margin-top:16px; flex-wrap:wrap;">
