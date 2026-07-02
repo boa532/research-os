@@ -1,4 +1,4 @@
-const CACHE = 'ros-v2';
+const CACHE = 'ros-v3';
 const ASSETS = ['./dashboard.html', './icon.svg', './manifest.json'];
 
 self.addEventListener('install', e => {
