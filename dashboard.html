@@ -938,6 +938,8 @@
     padding: 6px 8px;
     cursor: pointer;
     transition: border-color .15s;
+    overflow: hidden;
+    min-width: 0;
   }
   .cal-cell:hover { border-color: var(--border-2); }
   .cal-cell.empty { background: transparent; border-color: transparent; cursor: default; }
@@ -1301,7 +1303,7 @@
         </div>
 
         <!-- Day headers -->
-        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:1px; margin-bottom:2px; min-width:420px;">
+        <div style="display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:1px; margin-bottom:2px; min-width:420px;">
           <div style="text-align:center; font-size:11px; color:var(--text-3); padding:6px 0; font-weight:500;">일</div>
           <div style="text-align:center; font-size:11px; color:var(--text-3); padding:6px 0; font-weight:500;">월</div>
           <div style="text-align:center; font-size:11px; color:var(--text-3); padding:6px 0; font-weight:500;">화</div>
@@ -1312,7 +1314,7 @@
         </div>
 
         <!-- Calendar cells: JS로 동적 생성 -->
-        <div id="cal-grid" style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px; min-width:420px;"></div>
+        <div id="cal-grid" style="display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:2px; min-width:420px;"></div>
 
         <!-- Legend -->
         <div style="display:flex; gap:16px; margin-top:16px; flex-wrap:wrap;">
