@@ -1502,22 +1502,19 @@
         <span id="weekly-monthly-context-body">월간 목표 화면에서 목표를 입력하면 여기 표시됩니다.</span>
       </div>
 
-      <!-- Weekly goals (3개, localStorage 저장) -->
+      <!-- Weekly goals (동적) -->
       <div>
-        <div class="section-label" style="margin-bottom:14px;">이번 주 목표 — 월간 목표에서 이번 주에 할 것만</div>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <div style="display:flex; align-items:flex-start; gap:12px; padding:14px 16px; background:var(--surface); border:1.5px solid var(--accent); border-radius:var(--radius);">
-            <span style="width:20px; height:20px; border-radius:50%; background:var(--accent); color:white; font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">1</span>
-            <textarea id="wg-1" style="flex:1; border:none; outline:none; font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; background:transparent; line-height:1.6;" rows="2" placeholder="이번 주 가장 중요한 목표"></textarea>
+        <div class="section-label" style="margin-bottom:14px;">이번 주 목표</div>
+        <div id="weekly-goals-active" style="display:flex; flex-direction:column; gap:8px;"></div>
+        <button onclick="addWeeklyGoal()" style="margin-top:10px; width:100%; padding:10px; background:none; border:1.5px dashed var(--border); border-radius:var(--radius); font-size:12px; color:var(--text-3); cursor:pointer; font-family:var(--font-sans);">+ 목표 추가</button>
+
+        <!-- 완료 아카이브 -->
+        <div id="weekly-goals-archive-wrap" style="display:none; margin-top:16px;">
+          <div style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:8px;" onclick="toggleWeeklyArchive()">
+            <span id="wga-toggle" style="font-size:11px; color:var(--text-3);">▸ 완료한 목표</span>
+            <span id="wga-count" style="font-size:11px; color:var(--text-3);"></span>
           </div>
-          <div style="display:flex; align-items:flex-start; gap:12px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);">
-            <span style="width:20px; height:20px; border-radius:50%; background:var(--surface-2); color:var(--text-3); font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">2</span>
-            <textarea id="wg-2" style="flex:1; border:none; outline:none; font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; background:transparent; line-height:1.6;" rows="2" placeholder="두 번째 목표"></textarea>
-          </div>
-          <div style="display:flex; align-items:flex-start; gap:12px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);">
-            <span style="width:20px; height:20px; border-radius:50%; background:var(--surface-2); color:var(--text-3); font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;">3</span>
-            <textarea id="wg-3" style="flex:1; border:none; outline:none; font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; background:transparent; line-height:1.6;" rows="2" placeholder="세 번째 목표"></textarea>
-          </div>
+          <div id="weekly-goals-archive" style="display:none; flex-direction:column; gap:6px;"></div>
         </div>
       </div>
 
@@ -1536,7 +1533,7 @@
       <!-- Save -->
       <div>
         <button onclick="saveWeeklyGoals()" style="width:100%; padding:13px; background:var(--accent); color:white; border:none; border-radius:var(--radius); font-size:13px; font-family:var(--font-sans); font-weight:500; cursor:pointer;">
-          이번 주 목표 저장 → Daily Planning에 반영
+          저장 → Daily Planning에 반영
         </button>
         <div id="weekly-save-msg" style="display:none; text-align:center; font-size:12px; color:var(--accent); margin-top:8px;">저장되었습니다 ✓</div>
       </div>
@@ -3253,6 +3250,123 @@
     localStorage.setItem('weekly_data', JSON.stringify(data));
   }
 
+  function migrateWeeklyGoals(data) {
+    // 구형 {g1,g2,g3} → 신형 {goals:[{text,done}]}
+    if (data.goals) return data;
+    const goals = [data.g1, data.g2, data.g3]
+      .filter(Boolean)
+      .map(text => ({ text, done: false }));
+    return { goals, memo: data.memo || '' };
+  }
+
+  function getWeekData() {
+    const key  = getWeekKey(getWeekStart(weekOffset));
+    const raw  = (loadWeeklyData()[key] || {});
+    return { key, data: migrateWeeklyGoals(raw) };
+  }
+
+  function saveCurrentWeekData(data) {
+    const key = getWeekKey(getWeekStart(weekOffset));
+    const all = loadWeeklyData();
+    all[key]  = data;
+    saveWeeklyData(all);
+  }
+
+  function renderWeeklyGoals() {
+    const { data } = getWeekData();
+    const goals    = data.goals || [];
+    const active   = goals.filter(g => !g.done);
+    const archived = goals.filter(g => g.done);
+
+    // 활성 목표 렌더링
+    const activeEl = document.getElementById('weekly-goals-active');
+    activeEl.innerHTML = '';
+    active.forEach((g, visualIdx) => {
+      const realIdx = goals.indexOf(g);
+      const isFirst = visualIdx === 0;
+      const row = document.createElement('div');
+      row.style.cssText = `display:flex; align-items:flex-start; gap:10px; padding:12px 14px; background:var(--surface); border:${isFirst ? '1.5px solid var(--accent)' : '1px solid var(--border)'}; border-radius:var(--radius);`;
+
+      const num = document.createElement('span');
+      num.style.cssText = `width:20px; height:20px; border-radius:50%; background:${isFirst ? 'var(--accent)' : 'var(--surface-2)'}; color:${isFirst ? 'white' : 'var(--text-3)'}; font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;`;
+      num.textContent = visualIdx + 1;
+
+      const ta = document.createElement('textarea');
+      ta.style.cssText = 'flex:1; border:none; outline:none; font-size:13px; font-family:var(--font-sans); color:var(--text-1); resize:none; background:transparent; line-height:1.6;';
+      ta.rows = 2;
+      ta.placeholder = visualIdx === 0 ? '이번 주 가장 중요한 목표' : `${visualIdx+1}번째 목표`;
+      ta.value = g.text;
+      ta.addEventListener('input', () => {
+        const { data: d } = getWeekData();
+        d.goals[realIdx].text = ta.value;
+        saveCurrentWeekData(d);
+      });
+
+      const archBtn = document.createElement('button');
+      archBtn.style.cssText = 'flex-shrink:0; background:none; border:1px solid var(--border); border-radius:var(--radius-sm); padding:3px 9px; font-size:11px; color:var(--text-3); cursor:pointer; font-family:var(--font-sans); margin-top:2px; white-space:nowrap;';
+      archBtn.textContent = '완료 →';
+      archBtn.addEventListener('click', () => {
+        const { data: d } = getWeekData();
+        if (!d.goals[realIdx].text.trim()) return;
+        d.goals[realIdx].done = true;
+        saveCurrentWeekData(d);
+        renderWeeklyGoals();
+      });
+
+      row.append(num, ta, archBtn);
+      activeEl.appendChild(row);
+    });
+
+    // 아카이브
+    const archWrap = document.getElementById('weekly-goals-archive-wrap');
+    const archList = document.getElementById('weekly-goals-archive');
+    const archCount = document.getElementById('wga-count');
+    if (archived.length === 0) {
+      archWrap.style.display = 'none';
+      return;
+    }
+    archWrap.style.display = '';
+    archCount.textContent = `(${archived.length})`;
+    archList.innerHTML = '';
+    archived.forEach(g => {
+      const realIdx = goals.indexOf(g);
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:9px 14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); opacity:.7;';
+      row.innerHTML = `
+        <span style="font-size:12px; color:var(--text-3);">✓</span>
+        <span style="flex:1; font-size:13px; color:var(--text-3); text-decoration:line-through;">${g.text}</span>
+        <button style="flex-shrink:0; background:none; border:1px solid var(--border); border-radius:var(--radius-sm); padding:2px 8px; font-size:11px; color:var(--text-3); cursor:pointer; font-family:var(--font-sans);">되돌리기</button>`;
+      row.querySelector('button').addEventListener('click', () => {
+        const { data: d } = getWeekData();
+        d.goals[realIdx].done = false;
+        saveCurrentWeekData(d);
+        renderWeeklyGoals();
+      });
+      archList.appendChild(row);
+    });
+  }
+
+  function addWeeklyGoal() {
+    const { data } = getWeekData();
+    data.goals = data.goals || [];
+    data.goals.push({ text: '', done: false });
+    saveCurrentWeekData(data);
+    renderWeeklyGoals();
+    // 새로 추가된 마지막 textarea 포커스
+    setTimeout(() => {
+      const textareas = document.querySelectorAll('#weekly-goals-active textarea');
+      if (textareas.length) textareas[textareas.length - 1].focus();
+    }, 30);
+  }
+
+  function toggleWeeklyArchive() {
+    const list   = document.getElementById('weekly-goals-archive');
+    const toggle = document.getElementById('wga-toggle');
+    const open   = list.style.display !== 'none';
+    list.style.display = open ? 'none' : 'flex';
+    toggle.textContent = open ? '▸ 완료한 목표' : '▾ 완료한 목표';
+  }
+
   function renderWeeklyScreen() {
     const monday = getWeekStart(weekOffset);
     const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
@@ -3265,20 +3379,20 @@
     document.getElementById('weekly-range').textContent = `${fmt(monday)} — ${fmt(sunday)}`;
 
     // 이번 달 목표 컨텍스트
-    const mKey    = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}`;
-    const mGoals  = (loadMonthlyGoals()[mKey] || {});
-    const mTexts  = Object.values(mGoals).filter(Boolean).map(t => t.split('\n')[0].trim()).filter(Boolean);
+    const mKey   = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}`;
+    const mGoals = (loadMonthlyGoals()[mKey] || {});
+    const mTexts = Object.values(mGoals).filter(Boolean).map(t => t.split('\n')[0].trim()).filter(Boolean);
     document.getElementById('weekly-monthly-context-body').textContent =
       mTexts.length ? mTexts.join(' · ') : '월간 목표 화면에서 목표를 입력하면 여기 표시됩니다.';
 
-    // 주간 목표 및 메모 로드
-    const data = (loadWeeklyData()[key] || {});
-    document.getElementById('wg-1').value    = data.g1 || '';
-    document.getElementById('wg-2').value    = data.g2 || '';
-    document.getElementById('wg-3').value    = data.g3 || '';
+    // 주간 목표 (동적)
+    renderWeeklyGoals();
+
+    // 메모
+    const { data } = getWeekData();
     document.getElementById('weekly-memo').value = data.memo || '';
 
-    // GCal 이벤트
+    // GCal
     if (gcalConnected) {
       const gcalSec = document.getElementById('weekly-gcal-section');
       if (gcalSec) gcalSec.style.display = '';
@@ -3293,16 +3407,9 @@
   }
 
   function saveWeeklyGoals() {
-    const monday = getWeekStart(weekOffset);
-    const key    = getWeekKey(monday);
-    const all    = loadWeeklyData();
-    all[key] = {
-      g1:   document.getElementById('wg-1').value,
-      g2:   document.getElementById('wg-2').value,
-      g3:   document.getElementById('wg-3').value,
-      memo: document.getElementById('weekly-memo').value,
-    };
-    saveWeeklyData(all);
+    const { data } = getWeekData();
+    data.memo = document.getElementById('weekly-memo').value;
+    saveCurrentWeekData(data);
     const msg = document.getElementById('weekly-save-msg');
     msg.style.display = '';
     setTimeout(() => msg.style.display = 'none', 2000);
@@ -3565,8 +3672,9 @@
     wkStart.setDate(wkStart.getDate() - wkDow);
     wkStart.setHours(0, 0, 0, 0);
     const wKey    = getWeekKey(wkStart);
-    const wData   = (loadWeeklyData()[wKey] || {});
-    const wTexts  = [wData.g1, wData.g2, wData.g3].filter(Boolean).map(t => t.split('\n')[0].trim()).filter(Boolean);
+    const wRaw   = (loadWeeklyData()[wKey] || {});
+    const wData  = migrateWeeklyGoals(wRaw);
+    const wTexts = (wData.goals || []).filter(g => !g.done && g.text).map(g => g.text.split('\n')[0].trim()).filter(Boolean);
     document.getElementById('daily-weekly-context-body').textContent =
       wTexts.length ? wTexts.join(' · ') : '주간 목표 화면에서 목표를 입력하면 여기 표시됩니다.';
 
@@ -3913,10 +4021,10 @@
    * CLIENT_ID는 스크립트 최상단에서 선언됨 (TDZ 방지).
    ═══════════════════════════════════════════════════════════ */
 
-  /* 세션 토큰 캐시 — 탭을 닫기 전까지 재인증 불필요 */
+  /* 토큰 캐시 — localStorage에 저장해 탭/브라우저 재시작 후에도 자동 복원 */
   function restoreSessionToken() {
     try {
-      const cached = JSON.parse(sessionStorage.getItem('gcal_token') || 'null');
+      const cached = JSON.parse(localStorage.getItem('gcal_token') || 'null');
       if (cached && cached.expires_at > Date.now() + 60_000) {
         accessToken   = cached.access_token;
         gcalConnected = true;
@@ -3929,14 +4037,14 @@
   }
 
   function cacheSessionToken(token, expiresIn) {
-    sessionStorage.setItem('gcal_token', JSON.stringify({
+    localStorage.setItem('gcal_token', JSON.stringify({
       access_token: token,
       expires_at:   Date.now() + expiresIn * 1000,
     }));
   }
 
   function clearSessionToken() {
-    sessionStorage.removeItem('gcal_token');
+    localStorage.removeItem('gcal_token');
   }
 
   /* GIS 라이브러리 로드 완료 콜백 */
@@ -3946,7 +4054,10 @@
       scope:     GC_SCOPES,
       callback:  async (resp) => {
         if (resp.error) {
-          handleGCalError(resp.error, resp.error_description);
+          // 자동 재인증 실패는 조용히 무시 (사용자가 직접 연결 버튼 누름)
+          if (resp.error !== 'interaction_required' && resp.error !== 'access_denied') {
+            handleGCalError(resp.error, resp.error_description);
+          }
           return;
         }
         accessToken   = resp.access_token;
@@ -3957,8 +4068,18 @@
       },
     });
     gisInited = true;
-    // 세션 토큰 복원 시도
-    restoreSessionToken();
+    // 1) 유효한 캐시 토큰이 있으면 바로 복원
+    if (!restoreSessionToken()) {
+      // 2) 없거나 만료됐으면 → prompt:'' 로 조용히 재인증 시도
+      //    (이미 동의한 계정이면 팝업 없이 자동 발급)
+      try {
+        const hasCached = localStorage.getItem('gcal_token');
+        if (hasCached) {
+          // 이전에 연결한 적 있음 → 자동 재인증
+          setTimeout(() => tokenClient.requestAccessToken({ prompt: '' }), 500);
+        }
+      } catch(e) {}
+    }
   }
 
   function handleGCalError(error, desc) {
